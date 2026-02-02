@@ -1,0 +1,7 @@
+{
+  "name": "AgriPulse Edge-Cluster Dashboard",
+  "description": "A real-time dashboard for monitoring the AgriPulse edge-computing agricultural solution, displaying live data from the Master, Sentry (AI), and Telemetry nodes.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
