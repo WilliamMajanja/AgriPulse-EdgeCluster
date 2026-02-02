@@ -60,4 +60,4 @@ We are seeking seed funding to finalize enclosure design for mass production, sc
 **Join us in cultivating the future of agriculture.**
 
 ---
-For inquiries, please contact: [investors@agripulse.tech](mailto:investors@agripulse.tech)
+For inquiries, please contact: [Infinity Collaborations SDH](mailto: infinitycollaborations@gmail.com)
