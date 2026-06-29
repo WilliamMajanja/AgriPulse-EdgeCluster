@@ -1,7 +1,7 @@
 # AgriPulse FMIS
 
 <p align="center">
-  <a href="https://github.com/WilliamMajanja/AgriPulse-EdgeCluster/blob/main/README.md#license"><img src="https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square" alt="License: MIT"></a>
+  <a href="https://github.com/WilliamMajanja/AgriPulse-EdgeCluster/blob/main/LICENSE"><img src="https://img.shields.io/github/license/WilliamMajanja/AgriPulse-EdgeCluster?style=flat-square&color=blue" alt="License"></a>
   <a href="https://github.com/WilliamMajanja/AgriPulse-EdgeCluster/stargazers"><img src="https://img.shields.io/github/stars/WilliamMajanja/AgriPulse-EdgeCluster?style=flat-square&logo=github" alt="Stars"></a>
   <a href="https://github.com/WilliamMajanja/AgriPulse-EdgeCluster/network/members"><img src="https://img.shields.io/github/forks/WilliamMajanja/AgriPulse-EdgeCluster?style=flat-square&logo=github" alt="Forks"></a>
   <a href="https://github.com/WilliamMajanja/AgriPulse-EdgeCluster/issues"><img src="https://img.shields.io/github/issues/WilliamMajanja/AgriPulse-EdgeCluster?style=flat-square&logo=github" alt="Issues"></a>
