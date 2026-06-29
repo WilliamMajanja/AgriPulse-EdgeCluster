@@ -1,5 +1,15 @@
 # AgriPulse FMIS
 
+<p align="center">
+  <a href="https://github.com/WilliamMajanja/AgriPulse-EdgeCluster/blob/main/README.md#license"><img src="https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square" alt="License: MIT"></a>
+  <a href="https://github.com/WilliamMajanja/AgriPulse-EdgeCluster/stargazers"><img src="https://img.shields.io/github/stars/WilliamMajanja/AgriPulse-EdgeCluster?style=flat-square&logo=github" alt="Stars"></a>
+  <a href="https://github.com/WilliamMajanja/AgriPulse-EdgeCluster/network/members"><img src="https://img.shields.io/github/forks/WilliamMajanja/AgriPulse-EdgeCluster?style=flat-square&logo=github" alt="Forks"></a>
+  <a href="https://github.com/WilliamMajanja/AgriPulse-EdgeCluster/issues"><img src="https://img.shields.io/github/issues/WilliamMajanja/AgriPulse-EdgeCluster?style=flat-square&logo=github" alt="Issues"></a>
+  <a href="https://github.com/WilliamMajanja/AgriPulse-EdgeCluster/pulls"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square&logo=github" alt="PRs Welcome"></a>
+  <a href="https://github.com/WilliamMajanja/AgriPulse-EdgeCluster/commits/main"><img src="https://img.shields.io/github/last-commit/WilliamMajanja/AgriPulse-EdgeCluster?style=flat-square&logo=github" alt="Last Commit"></a>
+  <a href="https://github.com/WilliamMajanja/AgriPulse-EdgeCluster"><img src="https://img.shields.io/github/repo-size/WilliamMajanja/AgriPulse-EdgeCluster?style=flat-square&logo=github" alt="Repo Size"></a>
+</p>
+
 > A Farm Management Information System with sovereign edge computing — built for a 3-node Raspberry Pi 5 cluster with Hailo-10H AI acceleration, real-time sensor telemetry, and on-device LLM-powered agronomy.
 
 AgriPulse runs entirely on edge hardware: no cloud dependencies, no data leaving the farm. A FastAPI backend orchestrates sensor sampling, actuator control, and AI inference via a local Ollama model, while a lightweight HTML/CSS/JS frontend delivers a responsive dashboard accessible from any browser on the LAN.
@@ -17,15 +27,39 @@ AgriPulse runs entirely on edge hardware: no cloud dependencies, no data leaving
 
 ---
 
+## Table of Contents
+
+- [Highlights](#highlights)
+- [Tech Stack](#tech-stack)
+- [Architecture](#architecture)
+- [Quick Start](#quick-start)
+  - [Prerequisites](#prerequisites)
+  - [Option A — Run locally](#option-a--run-locally-simulated-sensors)
+  - [Option B — Docker Compose](#option-b--docker-compose)
+  - [Option C — Kubernetes](#option-c--kubernetes)
+- [Configuration](#configuration)
+- [Pages](#pages)
+- [API Reference](#api-reference)
+- [Project Structure](#project-structure)
+- [Hardware Bill of Materials](#hardware-bill-of-materials)
+- [Documentation](#documentation)
+- [Contributing](#contributing)
+- [Security](#security)
+- [License](#license)
+
+---
+
 ## Highlights
 
-- **Edge-native architecture** — 3-node Raspberry Pi 5 cluster with a Hailo-10H NPU (26 TOPS) for on-device vision inference.
-- **Real-time telemetry** — WebSocket streaming of sensor data (temperature, humidity, soil moisture, NPK, pH) at 2.5 s intervals.
-- **AI Agronomist** — Chat with a local Llama 3.1 model via Ollama for crop planning, troubleshooting, and task tool-calling.
-- **AI Farm Onboarding** — Describe your farm in plain language; the AI streams its reasoning, extracts a structured template (fields, crop cycles, tasks), and creates it in one transaction.
-- **Full FMIS domain model** — Farms, fields, crop cycles, soil & plant-health readings, irrigation, fertilization, harvests, and tasks.
-- **Actuator control** — Pump, misters, lights, fans, and fertilizer lines, exposed via WebSocket tool calls.
-- **Deployment-ready** — Docker Compose and Kubernetes (Kustomize) manifests included.
+| | Feature | Description |
+|---|---------|-------------|
+| **Edge** | Edge-native architecture | 3-node Raspberry Pi 5 cluster with a Hailo-10H NPU (26 TOPS) for on-device vision inference. |
+| **Realtime** | Real-time telemetry | WebSocket streaming of sensor data (temperature, humidity, soil moisture, NPK, pH) at 2.5 s intervals. |
+| **AI** | AI Agronomist | Chat with a local Llama 3.1 model via Ollama for crop planning, troubleshooting, and task tool-calling. |
+| **AI** | AI Farm Onboarding | Describe your farm in plain language; the AI streams its reasoning, extracts a structured template (fields, crop cycles, tasks), and creates it in one transaction. |
+| **Domain** | Full FMIS domain model | Farms, fields, crop cycles, soil & plant-health readings, irrigation, fertilization, harvests, and tasks. |
+| **Control** | Actuator control | Pump, misters, lights, fans, and fertilizer lines, exposed via WebSocket tool calls. |
+| **DevOps** | Deployment-ready | Docker Compose and Kubernetes (Kustomize) manifests included. |
 
 ---
 
