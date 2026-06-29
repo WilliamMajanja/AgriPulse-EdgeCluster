@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Irrigation & Nutrients | AgriPulse</title>
+<link rel="stylesheet" href="/static/css/style.css">
+<style>
+:root { --tab-height: 44px; }
+.tab-bar {
+  position: fixed; top: var(--header-height); left: 0; right: 0;
+  height: var(--tab-height);
+  background: var(--bg-med);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  z-index: 99;
+}
+.tab-bar button {
+  flex: 1;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  border-bottom: 2px solid transparent;
+  transition: all .2s;
+  -webkit-tap-highlight-color: transparent;
+}
+.tab-bar button.active { color: var(--green); border-bottom-color: var(--green); }
+.tab-bar button:active { opacity: .7; }
+.main-content { padding-top: calc(var(--header-height) + var(--tab-height) + 12px); }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+.event-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  margin-bottom: 10px;
+}
+.event-card .top-row {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  margin-bottom: 8px;
+}
+.event-card .field-name { font-size: .95rem; font-weight: 600; }
+.event-card .event-date { font-size: .75rem; color: var(--text-muted); }
+.event-card .detail-row {
+  display: flex; gap: 16px; flex-wrap: wrap;
+  font-size: .82rem; color: var(--text-muted);
+}
+.event-card .detail-row span { display: flex; align-items: center; gap: 4px; }
+.event-card .detail-row .label { color: var(--text-dim); }
+.floating-btn {
+  position: fixed; bottom: calc(var(--nav-height) + 16px); right: 16px;
+  width: 56px; height: 56px; border-radius: 50%;
+  background: var(--green); color: white;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 16px rgba(40,167,69,.35);
+  z-index: 50;
+  transition: all .2s;
+  -webkit-tap-highlight-color: transparent;
+}
+.floating-btn:active { transform: scale(.92); }
+.floating-btn svg { width: 26px; height: 26px; }
+.overlay-footer {
+  position: sticky; bottom: 0;
+  background: var(--bg-dark);
+  border-top: 1px solid var(--border);
+  padding: 12px 16px;
+  display: flex; gap: 10px;
+}
+.overlay-footer .btn { flex: 1; }
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <a href="/index.html" class="back-btn" aria-label="Back">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M19 12H5M12 19l-7-7 7-7"/>
+    </svg>
+  </a>
+  <h1>Irrigation &amp; Nutrients</h1>
+</header>
+
+<div class="tab-bar">
+  <button class="tab-btn active" data-tab="irrigation">Irrigation</button>
+  <button class="tab-btn" data-tab="fertilization">Fertilization</button>
+  <button class="tab-btn" data-tab="schedule">Schedule</button>
+</div>
+
+<main class="main-content">
+  <div id="tab-irrigation" class="tab-panel active"></div>
+  <div id="tab-fertilization" class="tab-panel"></div>
+  <div id="tab-schedule" class="tab-panel"></div>
+</main>
+
+<button class="floating-btn" id="fab-btn" aria-label="Add">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+    <path d="M12 5v14M5 12h14"/>
+  </svg>
+</button>
+
+<nav class="bottom-nav">
+  <a href="/index.html">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 12l2-2m0 0l7-7 7 7m-9 2v8m4-8v8M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3"/>
+    </svg>
+    <span>Dashboard</span>
+  </a>
+  <a href="/fields.html">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+    </svg>
+    <span>Fields</span>
+  </a>
+  <a href="/soil.html">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M2 22h20M6 22V4a2 2 0 012-2h8a2 2 0 012 2v18"/>
+    </svg>
+    <span>Soil</span>
+  </a>
+  <a href="/plants.html">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 22V7m0 0a5 5 0 00-5 5h10a5 5 0 00-5-5z"/><path d="M12 2v5"/>
+    </svg>
+    <span>Plants</span>
+  </a>
+  <a href="/tasks.html">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
+    </svg>
+    <span>Tasks</span>
+  </a>
+  <a href="/chat.html">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+    </svg>
+    <span>Chat</span>
+  </a>
+</nav>
+
+<!-- Overlay: Log Irrigation -->
+<div id="irrigation-overlay" class="overlay" style="display:none">
+  <div class="overlay-header">
+    <button class="back-btn" onclick="closeOverlay('irrigation-overlay')" aria-label="Close">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M19 12H5M12 19l-7-7 7-7"/>
+      </svg>
+    </button>
+    <h2>Log Irrigation</h2>
+  </div>
+  <div class="overlay-body">
+    <div class="form-group">
+      <label>Field</label>
+      <select id="irr-field" class="form-input" required></select>
+    </div>
+    <div class="grid-2">
+      <div class="form-group">
+        <label>Method</label>
+        <select id="irr-method" class="form-input">
+          <option value="drip">Drip</option>
+          <option value="sprinkler">Sprinkler</option>
+          <option value="flood">Flood</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Source</label>
+        <select id="irr-source" class="form-input">
+          <option value="well">Well</option>
+          <option value="rainwater">Rainwater</option>
+          <option value="municipal">Municipal</option>
+        </select>
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="form-group">
+        <label>Duration (min)</label>
+        <input type="number" id="irr-duration" class="form-input" min="1" step="1" placeholder="e.g. 120">
+      </div>
+      <div class="form-group">
+        <label>Water Volume (L)</label>
+        <input type="number" id="irr-volume" class="form-input" min="0" step="0.1" placeholder="e.g. 1500">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Notes</label>
+      <textarea id="irr-notes" class="form-input" rows="3" placeholder="Optional notes..."></textarea>
+    </div>
+  </div>
+  <div class="overlay-footer">
+    <button class="btn btn-secondary" onclick="closeOverlay('irrigation-overlay')">Cancel</button>
+    <button class="btn btn-primary" onclick="submitIrrigation()">Save</button>
+  </div>
+</div>
+
+<!-- Overlay: Log Fertilization -->
+<div id="fert-overlay" class="overlay" style="display:none">
+  <div class="overlay-header">
+    <button class="back-btn" onclick="closeOverlay('fert-overlay')" aria-label="Close">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M19 12H5M12 19l-7-7 7-7"/>
+      </svg>
+    </button>
+    <h2>Log Fertilization</h2>
+  </div>
+  <div class="overlay-body">
+    <div class="form-group">
+      <label>Field</label>
+      <select id="fert-field" class="form-input" required></select>
+    </div>
+    <div class="grid-2">
+      <div class="form-group">
+        <label>Nutrient Type</label>
+        <select id="fert-type" class="form-input">
+          <option value="N">N (Nitrogen)</option>
+          <option value="P">P (Phosphorus)</option>
+          <option value="K">K (Potassium)</option>
+          <option value="NPK">NPK (Compound)</option>
+          <option value="compost">Compost</option>
+          <option value="manure">Manure</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Amount (kg)</label>
+        <input type="number" id="fert-amount" class="form-input" min="0" step="0.1" placeholder="e.g. 50">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Application Method</label>
+      <input type="text" id="fert-method" class="form-input" placeholder="e.g. Broadcast, Foliar, Fertigation">
+    </div>
+    <div class="form-group">
+      <label>Notes</label>
+      <textarea id="fert-notes" class="form-input" rows="3" placeholder="Optional notes..."></textarea>
+    </div>
+  </div>
+  <div class="overlay-footer">
+    <button class="btn btn-secondary" onclick="closeOverlay('fert-overlay')">Cancel</button>
+    <button class="btn btn-primary" onclick="submitFertilization()">Save</button>
+  </div>
+</div>
+
+<!-- Overlay: Schedule Irrigation -->
+<div id="schedule-overlay" class="overlay" style="display:none">
+  <div class="overlay-header">
+    <button class="back-btn" onclick="closeOverlay('schedule-overlay')" aria-label="Close">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M19 12H5M12 19l-7-7 7-7"/>
+      </svg>
+    </button>
+    <h2>Schedule Irrigation</h2>
+  </div>
+  <div class="overlay-body">
+    <div class="form-group">
+      <label>Field</label>
+      <select id="sch-field" class="form-input" required></select>
+    </div>
+    <div class="grid-2">
+      <div class="form-group">
+        <label>Method</label>
+        <select id="sch-method" class="form-input">
+          <option value="drip">Drip</option>
+          <option value="sprinkler">Sprinkler</option>
+          <option value="flood">Flood</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Duration (min)</label>
+        <input type="number" id="sch-duration" class="form-input" min="1" step="1" placeholder="e.g. 120">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Date &amp; Time</label>
+      <input type="datetime-local" id="sch-datetime" class="form-input">
+    </div>
+  </div>
+  <div class="overlay-footer">
+    <button class="btn btn-secondary" onclick="closeOverlay('schedule-overlay')">Cancel</button>
+    <button class="btn btn-primary" onclick="submitSchedule()">Save</button>
+  </div>
+</div>
+
+<script src="/static/js/api.js"></script>
+<script>
+let fields = [];
+let fieldMap = {};
+let currentTab = 'irrigation';
+
+document.addEventListener('DOMContentLoaded', async () => {
+  try { fields = await api.getFields() || []; } catch (e) { fields = []; }
+  fieldMap = Object.fromEntries(fields.map(f => [f.id, f.name || f.field_name || `Field #${f.id}`]));
+  populateSelects();
+  await loadTab('irrigation');
+  setupTabListeners();
+  setupFab();
+});
+
+function populateSelects() {
+  const opts = fields.map(f => `<option value="${f.id}">${fieldMap[f.id]}</option>`).join('');
+  ['irr-field', 'fert-field', 'sch-field'].forEach(id => {
+    document.getElementById(id).innerHTML = `<option value="">Select field...</option>${opts}`;
+  });
+}
+
+function setupTabListeners() {
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentTab = btn.dataset.tab;
+      loadTab(currentTab);
+    });
+  });
+}
+
+function setupFab() {
+  document.getElementById('fab-btn').addEventListener('click', () => {
+    if (currentTab === 'irrigation') openOverlay('irrigation-overlay');
+    else if (currentTab === 'fertilization') openOverlay('fert-overlay');
+    else if (currentTab === 'schedule') openOverlay('schedule-overlay');
+  });
+}
+
+async function loadTab(tab) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById(`tab-${tab}`).classList.add('active');
+  if (tab === 'irrigation') await loadIrrigation();
+  else if (tab === 'fertilization') await loadFertilization();
+  else if (tab === 'schedule') await loadSchedule();
+}
+
+// ─── Irrigation ───
+
+async function loadIrrigation() {
+  const el = document.getElementById('tab-irrigation');
+  el.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;padding:40px;gap:12px"><div class="spinner"></div><span class="text-muted text-sm">Loading...</span></div>';
+  try {
+    const data = await api.getIrrigation() || [];
+    renderIrrigation(data);
+  } catch (e) {
+    el.innerHTML = `<div class="empty-state"><h3>Could not load data</h3><p class="text-sm">${e.message}</p></div>`;
+  }
+}
+
+function renderIrrigation(events) {
+  const el = document.getElementById('tab-irrigation');
+  if (!events.length) {
+    el.innerHTML = `<div class="empty-state"><h3>No irrigation events</h3><p>Log your first irrigation event</p></div>`;
+    return;
+  }
+  el.innerHTML = events.map(e => {
+    const fname = fieldMap[e.field_id] || `Field #${e.field_id}`;
+    const date = fmtDateTime(e.created_at || e.date);
+    const method = e.method || '—';
+    const methodClass = { drip: 'chip-green', sprinkler: 'chip-blue', flood: 'chip-yellow' }[method] || 'chip-gray';
+    return `<div class="event-card">
+      <div class="top-row">
+        <span class="field-name">${esc(fname)}</span>
+        <span class="event-date">${date}</span>
+      </div>
+      <div class="detail-row">
+        <span><span class="label">Method:</span> <span class="chip ${methodClass}">${esc(method)}</span></span>
+        <span><span class="label">Duration:</span> ${e.duration_minutes || '—'} min</span>
+        <span><span class="label">Volume:</span> ${e.water_volume_liters != null ? fmtNum(e.water_volume_liters, 1) + ' L' : '—'}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ─── Fertilization ───
+
+async function loadFertilization() {
+  const el = document.getElementById('tab-fertilization');
+  el.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;padding:40px;gap:12px"><div class="spinner"></div><span class="text-muted text-sm">Loading...</span></div>';
+  try {
+    const data = await api.getFertilization() || [];
+    renderFertilization(data);
+  } catch (e) {
+    el.innerHTML = `<div class="empty-state"><h3>Could not load data</h3><p class="text-sm">${e.message}</p></div>`;
+  }
+}
+
+function renderFertilization(events) {
+  const el = document.getElementById('tab-fertilization');
+  if (!events.length) {
+    el.innerHTML = `<div class="empty-state"><h3>No fertilization events</h3><p>Log your first fertilization event</p></div>`;
+    return;
+  }
+  el.innerHTML = events.map(e => {
+    const fname = fieldMap[e.field_id] || `Field #${e.field_id}`;
+    const date = fmtDateTime(e.created_at || e.date);
+    const ntype = e.nutrient_type || '—';
+    const nClass = { N: 'chip-green', P: 'chip-blue', K: 'chip-yellow', NPK: 'chip-red', compost: 'chip-gray', manure: 'chip-gray' }[ntype] || 'chip-gray';
+    return `<div class="event-card">
+      <div class="top-row">
+        <span class="field-name">${esc(fname)}</span>
+        <span class="event-date">${date}</span>
+      </div>
+      <div class="detail-row">
+        <span><span class="label">Type:</span> <span class="chip ${nClass}">${esc(ntype)}</span></span>
+        <span><span class="label">Amount:</span> ${e.amount_kg != null ? fmtNum(e.amount_kg, 1) + ' kg' : '—'}</span>
+        <span><span class="label">Method:</span> ${esc(e.application_method || '—')}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ─── Schedule ───
+
+async function loadSchedule() {
+  const el = document.getElementById('tab-schedule');
+  el.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;padding:40px;gap:12px"><div class="spinner"></div><span class="text-muted text-sm">Loading...</span></div>';
+  try {
+    const data = await api.getIrrigation() || [];
+    const scheduled = data.filter(e => e.status === 'scheduled' || e.scheduled_date || e.scheduled_at);
+    renderSchedule(scheduled.length ? scheduled : data);
+  } catch (e) {
+    el.innerHTML = `<div class="empty-state"><h3>Could not load data</h3><p class="text-sm">${e.message}</p></div>`;
+  }
+}
+
+function renderSchedule(events) {
+  const el = document.getElementById('tab-schedule');
+  if (!events.length) {
+    el.innerHTML = `<div class="empty-state"><h3>No scheduled events</h3><p>Schedule your next irrigation</p></div>`;
+    return;
+  }
+  el.innerHTML = events.map(e => {
+    const fname = fieldMap[e.field_id] || `Field #${e.field_id}`;
+    const dt = e.scheduled_date || e.scheduled_at || e.created_at;
+    const date = dt ? fmtDateTime(dt) : '—';
+    const method = e.method || '—';
+    const methodClass = { drip: 'chip-green', sprinkler: 'chip-blue', flood: 'chip-yellow' }[method] || 'chip-gray';
+    return `<div class="event-card">
+      <div class="top-row">
+        <span class="field-name">${esc(fname)}</span>
+        <span class="event-date">${date}</span>
+      </div>
+      <div class="detail-row">
+        <span><span class="label">Method:</span> <span class="chip ${methodClass}">${esc(method)}</span></span>
+        <span><span class="label">Duration:</span> ${e.duration_minutes || '—'} min</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ─── Overlay Helpers ───
+
+function openOverlay(id) {
+  document.getElementById(id).style.display = 'block';
+  document.body.style.overflow = 'hidden';
+}
+
+function closeOverlay(id) {
+  document.getElementById(id).style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+// ─── Submit Handlers ───
+
+async function submitIrrigation() {
+  const field = document.getElementById('irr-field').value;
+  if (!field) return showToast('Please select a field', 'warning');
+  const data = {
+    field_id: parseInt(field),
+    method: document.getElementById('irr-method').value,
+    source: document.getElementById('irr-source').value,
+    duration_minutes: parseFloat(document.getElementById('irr-duration').value) || null,
+    water_volume_liters: parseFloat(document.getElementById('irr-volume').value) || null,
+    notes: document.getElementById('irr-notes').value || null,
+  };
+  try {
+    await api.createIrrigation(data);
+    showToast('Irrigation logged successfully', 'success');
+    closeOverlay('irrigation-overlay');
+    resetForm('irrigation-overlay');
+    await loadIrrigation();
+  } catch (e) {
+    showToast(e.message, 'error');
+  }
+}
+
+async function submitFertilization() {
+  const field = document.getElementById('fert-field').value;
+  if (!field) return showToast('Please select a field', 'warning');
+  const data = {
+    field_id: parseInt(field),
+    nutrient_type: document.getElementById('fert-type').value,
+    amount_kg: parseFloat(document.getElementById('fert-amount').value) || null,
+    application_method: document.getElementById('fert-method').value || null,
+    notes: document.getElementById('fert-notes').value || null,
+  };
+  try {
+    await api.createFertilization(data);
+    showToast('Fertilization logged successfully', 'success');
+    closeOverlay('fert-overlay');
+    resetForm('fert-overlay');
+    await loadFertilization();
+  } catch (e) {
+    showToast(e.message, 'error');
+  }
+}
+
+async function submitSchedule() {
+  const field = document.getElementById('sch-field').value;
+  if (!field) return showToast('Please select a field', 'warning');
+  const dateTime = document.getElementById('sch-datetime').value;
+  if (!dateTime) return showToast('Please select a date and time', 'warning');
+  const data = {
+    field_id: parseInt(field),
+    method: document.getElementById('sch-method').value,
+    duration_minutes: parseFloat(document.getElementById('sch-duration').value) || null,
+    timestamp: new Date(dateTime).toISOString(),
+  };
+  try {
+    await api.scheduleIrrigation(data);
+    showToast('Irrigation scheduled successfully', 'success');
+    closeOverlay('schedule-overlay');
+    resetForm('schedule-overlay');
+    await loadSchedule();
+  } catch (e) {
+    showToast(e.message, 'error');
+  }
+}
+
+function resetForm(overlayId) {
+  const overlay = document.getElementById(overlayId);
+  overlay.querySelectorAll('input, textarea, select').forEach(el => {
+    if (el.tagName === 'SELECT') el.selectedIndex = 0;
+    else if (el.type === 'datetime-local') el.value = '';
+    else el.value = '';
+  });
+}
+
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+</script>
+</body>
+</html>

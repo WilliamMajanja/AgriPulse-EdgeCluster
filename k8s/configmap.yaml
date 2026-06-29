@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: agripulse-config
+  namespace: agripulse
+data:
+  SENSOR_MODE: simulated
+  OLLAMA_MODEL: llama3.1:8b
+  DATABASE_URL: sqlite:///data/agripulse.db
+  OLLAMA_BASE_URL: http://ollama-service:11434

@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Bill of Materials - AgriPulse FMIS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/style.css">
+<script src="/static/js/api.js"></script>
+<style>
+.bom-section { margin-bottom: 16px; }
+.bom-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.bom-card h3 { font-size: 0.85rem; font-weight: 700; padding: 12px 16px; border-bottom: 1px solid var(--border); background: var(--bg-light); color: var(--text); display: flex; align-items: center; gap: 8px; }
+.bom-card h3 .icon { font-size: 1.1rem; }
+.bom-table { width: 100%; border-collapse: collapse; }
+.bom-table th { text-align: left; font-size: 0.65rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; color: var(--text-muted); padding: 8px 16px; border-bottom: 1px solid var(--border-light); background: var(--bg-card); }
+.bom-table td { padding: 10px 16px; font-size: 0.82rem; border-bottom: 1px solid var(--border-light); vertical-align: top; }
+.bom-table tr:last-child td { border-bottom: none; }
+.bom-table .item-name { font-weight: 500; color: var(--text); }
+.bom-table .item-spec { color: var(--text-muted); font-size: 0.75rem; }
+.bom-table .item-qty { text-align: center; font-weight: 600; color: var(--green); font-family: 'SF Mono', 'Fira Code', monospace; }
+.bom-table .item-notes { color: var(--text-dim); font-size: 0.72rem; }
+.node-status-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
+.node-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; display: flex; align-items: center; gap: 12px; transition: border-color 0.2s; }
+.node-card .node-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0; }
+.node-card .node-icon.master { background: rgba(40,167,69,0.15); color: var(--green); }
+.node-card .node-icon.sentry { background: rgba(88,166,255,0.15); color: var(--info); }
+.node-card .node-icon.telemetry { background: rgba(210,153,34,0.15); color: var(--warning); }
+.node-card .node-info { flex: 1; min-width: 0; }
+.node-card .node-info .node-name { font-size: 0.9rem; font-weight: 600; }
+.node-card .node-info .node-desc { font-size: 0.72rem; color: var(--text-muted); margin-top: 1px; }
+.node-card .node-info .node-meta { font-size: 0.7rem; color: var(--text-dim); margin-top: 4px; display: flex; gap: 8px; flex-wrap: wrap; }
+.node-card .node-status { flex-shrink: 0; font-size: 0.65rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+@media (min-width: 600px) { .node-status-grid { grid-template-columns: repeat(3, 1fr); } }
+</style>
+</head>
+<body>
+<div class="app-header">
+  <a href="/" class="back-btn" aria-label="Back">&#x2190;</a>
+  <h1>Bill of Materials</h1>
+</div>
+
+<div class="main-content">
+  <div id="node-status-area" class="mb-12">
+    <div class="section-title">Cluster Node Status</div>
+    <div class="node-status-grid" id="node-status-grid">
+      <div class="node-card"><div class="node-icon master">&#x1F5A5;</div><div class="node-info"><div class="node-name">Master Node</div><div class="node-desc">Orchestration &amp; AI processing</div><div class="node-meta"><span>RPi5 16GB + Hailo-10H</span></div></div><div class="node-status"><span class="status-dot offline"></span>Offline</div></div>
+      <div class="node-card"><div class="node-icon sentry">&#x1F4E1;</div><div class="node-info"><div class="node-name">Sentry Node</div><div class="node-desc">Sensor ingestion &amp; vision</div><div class="node-meta"><span>RPi5 16GB + Global Shutter Cam</span></div></div><div class="node-status"><span class="status-dot offline"></span>Offline</div></div>
+      <div class="node-card"><div class="node-icon telemetry">&#x1F3E1;</div><div class="node-info"><div class="node-name">Telemetry Node</div><div class="node-desc">Environmental monitoring</div><div class="node-meta"><span>RPi5 16GB + Sense HAT</span></div></div><div class="node-status"><span class="status-dot offline"></span>Offline</div></div>
+    </div>
+  </div>
+
+  <div class="bom-section">
+    <div class="section-title">Hardware Inventory</div>
+
+    <div class="bom-card">
+      <h3><span class="icon">&#x1F4BB;</span> Core Hardware</h3>
+      <table class="bom-table">
+        <thead><tr><th>Item</th><th style="width:40%;">Specification</th><th style="width:48px;">Qty</th></tr></thead>
+        <tbody>
+          <tr><td><div class="item-name">Raspberry Pi 5</div><div class="item-spec">16GB RAM, ARM Cortex-A76</div></td><td class="item-spec">BCM2712 quad-core @ 2.4GHz</td><td class="item-qty">3</td></tr>
+          <tr><td><div class="item-name">AI HAT+ Hailo-10H</div><div class="item-spec">26 TOPS NPU accelerator</div></td><td class="item-spec">M.2 Key B, PCIe 3.0 x1</td><td class="item-qty">1</td></tr>
+          <tr><td><div class="item-name">Sense HAT</div><div class="item-spec">Temp, humidity, pressure, IMU, 8x8 LED</div></td><td class="item-spec">I2C, 5V tolerant</td><td class="item-qty">1</td></tr>
+          <tr><td><div class="item-name">NVMe HAT</div><div class="item-spec">M.2 Key M adapter for RPi5</div></td><td class="item-spec">PCIe 2.0 x1, USB 3.0</td><td class="item-qty">1</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="bom-card">
+      <h3><span class="icon">&#x1F4F7;</span> Sensors &amp; Vision</h3>
+      <table class="bom-table">
+        <thead><tr><th>Item</th><th style="width:40%;">Specification</th><th style="width:48px;">Qty</th></tr></thead>
+        <tbody>
+          <tr><td><div class="item-name">Global Shutter Camera</div><div class="item-spec">Sony IMX296 1.58MP</div></td><td class="item-spec">CSI-2, 60fps, global shutter</td><td class="item-qty">1</td></tr>
+          <tr><td><div class="item-name">Capacitive Moisture Sensor v2.0</div><div class="item-spec">Corrosion-resistant, analog output</div></td><td class="item-spec">0-3V analog, I2C (via ADC)</td><td class="item-qty">3</td></tr>
+          <tr><td><div class="item-name">pH Probe Kit</div><div class="item-spec">BNC electrode, pH 0-14</div></td><td class="item-spec">Analog, requires ADS1115</td><td class="item-qty">1</td></tr>
+          <tr><td><div class="item-name">ADS1115 ADC Module</div><div class="item-spec">16-bit, 4-channel, I2C</div></td><td class="item-spec">0-5V input, programmable gain</td><td class="item-qty">1</td></tr>
+          <tr><td><div class="item-name">DS18B20 Temperature Sensor</div><div class="item-spec">-55 to +125&#xB0;C, 1-Wire</div></td><td class="item-spec">9-12 bit resolution, parasitic power</td><td class="item-qty">2</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="bom-card">
+      <h3><span class="icon">&#x1F4E1;</span> Storage &amp; Networking</h3>
+      <table class="bom-table">
+        <thead><tr><th>Item</th><th style="width:40%;">Specification</th><th style="width:48px;">Qty</th></tr></thead>
+        <tbody>
+          <tr><td><div class="item-name">NVMe SSD 512GB</div><div class="item-spec">M.2 2280, PCIe 3.0</div></td><td class="item-spec">Up to 3500 MB/s read</td><td class="item-qty">1</td></tr>
+          <tr><td><div class="item-name">Gigabit Ethernet Switch</div><div class="item-spec">5-port, unmanaged</div></td><td class="item-spec">10/100/1000 Mbps, metal case</td><td class="item-qty">1</td></tr>
+          <tr><td><div class="item-name">Cat6 Ethernet Cables</div><div class="item-spec">SFTP, 0.5m</div></td><td class="item-spec">500MHz, 10Gbps capable</td><td class="item-qty">3</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="bom-card">
+      <h3><span class="icon">&#x26A1;</span> Power &amp; Thermal</h3>
+      <table class="bom-table">
+        <thead><tr><th>Item</th><th style="width:40%;">Specification</th><th style="width:48px;">Qty</th></tr></thead>
+        <tbody>
+          <tr><td><div class="item-name">27W USB-C PSU</div><div class="item-spec">5.1V / 5.1A, PD compatible</div></td><td class="item-spec">Official Raspberry Pi PSU</td><td class="item-qty">3</td></tr>
+          <tr><td><div class="item-name">Active Cooler</div><div class="item-spec">Fan + heatsink for RPi5</div></td><td class="item-spec">PWM fan, aluminum fins</td><td class="item-qty">3</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="bom-card">
+      <h3><span class="icon">&#x2699;</span> Actuators</h3>
+      <table class="bom-table">
+        <thead><tr><th>Item</th><th style="width:40%;">Specification</th><th style="width:48px;">Qty</th></tr></thead>
+        <tbody>
+          <tr><td><div class="item-name">LED Grow Light Panel</div><div class="item-spec">Full spectrum 400-800nm</div></td><td class="item-spec">12V DC, 30W</td><td class="item-qty">2</td></tr>
+          <tr><td><div class="item-name">Ventilation Fan</div><div class="item-spec">120mm, 12V DC</div></td><td class="item-spec">2000 RPM, 80 CFM, ball bearing</td><td class="item-qty">2</td></tr>
+          <tr><td><div class="item-name">Peristaltic Dosing Pump</div><div class="item-spec">12V DC, 0-100 mL/min</div></td><td class="item-spec">Silicone tubing, reversible</td><td class="item-qty">1</td></tr>
+          <tr><td><div class="item-name">Solenoid Valve</div><div class="item-spec">12V NC, 1/2" NPT</div></td><td class="item-spec">Brass body, 0.5-8 bar</td><td class="item-qty">1</td></tr>
+          <tr><td><div class="item-name">Mister Nozzle Kit</div><div class="item-spec">0.5mm orifice, 360&#xB0;</div></td><td class="item-spec">Brass, 1/8" thread, 40 PSI</td><td class="item-qty">1</td></tr>
+          <tr><td><div class="item-name">4-Channel Relay Module</div><div class="item-spec">5V coil, 10A / 250VAC</div></td><td class="item-spec">Optocoupler isolation, LED indicators</td><td class="item-qty">1</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="bom-card">
+      <h3><span class="icon">&#x1F4E6;</span> Enclosure</h3>
+      <table class="bom-table">
+        <thead><tr><th>Item</th><th style="width:40%;">Specification</th><th style="width:48px;">Qty</th></tr></thead>
+        <tbody>
+          <tr><td><div class="item-name">IP65 Vented Enclosure</div><div class="item-spec">400x300x200mm, polycarbonate</div></td><td class="item-spec">UV resistant, gasketed lid</td><td class="item-qty">1</td></tr>
+          <tr><td><div class="item-name">Cable Glands PG11</div><div class="item-spec">5-10mm cable range, nylon</div></td><td class="item-spec">IP68, lock nut included</td><td class="item-qty">6</td></tr>
+          <tr><td><div class="item-name">M2.5 Brass Standoffs</div><div class="item-spec">6mm hex, 12mm length</div></td><td class="item-spec">Female-female, nickel plated</td><td class="item-qty">16</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+function updateNodeStatus(nodeId, status, data) {
+  var cards = document.querySelectorAll('.node-card');
+  var idx = { master: 0, sentry: 1, telemetry: 2 }[nodeId];
+  if (idx === undefined) return;
+  var card = cards[idx];
+  if (!card) return;
+  var dot = card.querySelector('.status-dot');
+  var statusText = card.querySelector('.node-status');
+  dot.className = 'status-dot ' + (status === 'online' ? 'online' : status === 'warning' ? 'warning' : 'offline');
+  statusText.innerHTML = dot.outerHTML + (status.charAt(0).toUpperCase() + status.slice(1));
+  var meta = card.querySelector('.node-meta');
+  if (data) {
+    var extra = [];
+    if (data.cpu_temp) extra.push(data.cpu_temp + '&#xB0;C');
+    if (data.uptime) extra.push(data.uptime);
+    if (extra.length) {
+      meta.innerHTML = '<span>RPi5 16GB</span>' + extra.map(function(e) { return '<span>' + e + '</span>'; }).join('');
+    }
+  }
+}
+
+ws.on('data', function(msg) {
+  if (msg.master) updateNodeStatus('master', msg.master.status || 'offline', msg.master);
+  if (msg.sentry) updateNodeStatus('sentry', msg.sentry.status || 'offline', msg.sentry);
+  if (msg.telemetry) updateNodeStatus('telemetry', msg.telemetry.status || 'offline', msg.telemetry);
+});
+
+ws.on('connected', function() {
+  ws.send({ action: 'get_nodes' });
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Plant Health - AgriPulse</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/style.css">
+<script src="/static/js/api.js"></script>
+<style>
+  body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
+  .progress-bar { height: 8px; background: var(--bg-light); border-radius: 4px; overflow: hidden; }
+  .progress-bar .fill { height: 100%; border-radius: 4px; transition: width 0.4s ease; }
+  .risk-label { display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 4px; }
+  .risk-label span:first-child { color: var(--text-muted); }
+  .risk-label span:last-child { font-weight: 700; font-family: 'SF Mono', 'Fira Code', monospace; }
+  .history-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border-light); font-size: 0.85rem; }
+  .history-item:last-child { border-bottom: none; }
+  .history-item .left { display: flex; flex-direction: column; gap: 2px; }
+  .history-item .left .stage { font-weight: 600; }
+  .history-item .left .date { font-size: 0.75rem; color: var(--text-muted); }
+  .history-item .right { text-align: right; }
+  .history-item .right .canopy { font-weight: 600; font-family: 'SF Mono', 'Fira Code', monospace; }
+  .history-item .right .detail { font-size: 0.7rem; color: var(--text-muted); }
+  .badge-nutrient { display: inline-block; padding: 3px 10px; border-radius: 10px; font-size: 0.75rem; font-weight: 600; }
+  .badge-none { background: rgba(40,167,69,0.15); color: var(--green); }
+  .badge-deficient { background: rgba(218,54,51,0.15); color: var(--danger); }
+  input[type="range"] { -webkit-appearance: none; appearance: none; width: 100%; height: 6px; background: var(--bg-light); border-radius: 3px; outline: none; }
+  input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; border-radius: 50%; background: var(--green); cursor: pointer; border: 2px solid var(--bg-med); }
+  input[type="range"]::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: var(--green); cursor: pointer; border: 2px solid var(--bg-med); }
+  .range-value { display: inline-block; min-width: 32px; text-align: right; font-weight: 700; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.85rem; }
+  .status-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+  .status-item { background: var(--bg-light); border-radius: var(--radius-sm); padding: 12px; text-align: center; }
+  .status-item .val { font-size: 1.3rem; font-weight: 800; color: var(--green); }
+  .status-item .lbl { font-size: 0.7rem; color: var(--text-muted); margin-top: 2px; }
+  .status-item .unit { font-size: 0.7rem; color: var(--text-dim); }
+</style>
+</head>
+<body>
+  <header class="app-header">
+    <h1>Plant Health</h1>
+  </header>
+
+  <main class="main-content">
+    <!-- Field Selector -->
+    <select id="fieldSelect" class="form-input mb-12">
+      <option value="">Select a field...</option>
+    </select>
+
+    <!-- Current Status -->
+    <div class="card" id="currentStatusCard">
+      <div class="card-header">
+        <h2>Current Status</h2>
+        <span id="growthStageBadge" class="chip chip-gray">—</span>
+      </div>
+      <div class="status-grid">
+        <div class="status-item">
+          <div class="val" id="canopyCover">—</div>
+          <div class="lbl">Canopy Cover</div>
+          <div class="unit">%</div>
+        </div>
+        <div class="status-item">
+          <div class="val" id="chlorophyllContent">—</div>
+          <div class="lbl">Chlorophyll</div>
+          <div class="unit">CCI</div>
+        </div>
+        <div class="status-item">
+          <div class="val" id="leafAreaIndex">—</div>
+          <div class="lbl">Leaf Area Index</div>
+          <div class="unit">LAI</div>
+        </div>
+        <div class="status-item">
+          <div class="val" id="readingDate">—</div>
+          <div class="lbl">Last Reading</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Risk Indicators -->
+    <div class="card">
+      <h2 class="section-title">Risk Indicators</h2>
+      <div class="mb-12">
+        <div class="risk-label">
+          <span>Disease Risk</span>
+          <span id="diseaseRiskValue">—</span>
+        </div>
+        <div class="progress-bar">
+          <div class="fill" id="diseaseRiskBar" style="width:0%"></div>
+        </div>
+      </div>
+      <div class="mb-12">
+        <div class="risk-label">
+          <span>Pest Pressure</span>
+          <span id="pestPressureValue">—</span>
+        </div>
+        <div class="progress-bar">
+          <div class="fill" id="pestPressureBar" style="width:0%"></div>
+        </div>
+      </div>
+      <div>
+        <div class="risk-label">
+          <span>Nutrient Deficiency</span>
+          <span id="nutrientDeficiencyBadge"><span class="badge-none badge-nutrient">None</span></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- History -->
+    <div class="card" id="historyCard">
+      <div class="card-header">
+        <h2>Recent Readings</h2>
+      </div>
+      <div id="historyList">
+        <div class="empty-state">
+          <h3>No readings yet</h3>
+          <p>Add a plant health reading to get started</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add Reading Button -->
+    <button id="addReadingBtn" class="btn btn-primary btn-block mt-8 mb-12">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Add Reading
+    </button>
+  </main>
+
+  <!-- Bottom Navigation -->
+  <nav class="bottom-nav">
+    <a href="/index.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      <span>Dashboard</span>
+    </a>
+    <a href="/fields.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 22V2h20v20H2z"/><path d="M2 12h20"/><path d="M12 2v20"/></svg>
+      <span>Fields</span>
+    </a>
+    <a href="/soil.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2C7.5 2 4 5.5 4 10c0 5 8 12 8 12s8-7 8-12c0-4.5-3.5-8-8-8z"/><circle cx="12" cy="10" r="3"/></svg>
+      <span>Soil</span>
+    </a>
+    <a href="/plants.html" class="active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M12 2C8.5 2 5 5.5 5 10c0 4 7 10 7 10s7-6 7-10c0-4.5-3.5-8-7-8z"/><path d="M12 2c3.5 2 6 6 6 10"/></svg>
+      <span>Plants</span>
+    </a>
+    <a href="/tasks.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      <span>Tasks</span>
+    </a>
+    <a href="/chat.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      <span>Chat</span>
+    </a>
+  </nav>
+
+  <!-- Add Reading Overlay -->
+  <div id="addReadingOverlay" class="overlay hidden">
+    <div class="overlay-header">
+      <button id="closeOverlayBtn" class="back-btn">&larr;</button>
+      <h2>Add Plant Health Reading</h2>
+    </div>
+    <div class="overlay-body">
+      <form id="addReadingForm">
+        <div class="form-group">
+          <label for="ph_field_id">Field</label>
+          <select id="ph_field_id" name="field_id" class="form-input" required>
+            <option value="">Select a field...</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="growth_stage">Growth Stage</label>
+          <select id="growth_stage" name="growth_stage" class="form-input" required>
+            <option value="">Select stage...</option>
+            <option value="Seedling">Seedling</option>
+            <option value="Vegetative">Vegetative</option>
+            <option value="Flowering">Flowering</option>
+            <option value="Fruiting">Fruiting</option>
+            <option value="Maturation">Maturation</option>
+            <option value="Harvested">Harvested</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="canopy_cover_pct">Canopy Cover (%)</label>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <input type="range" id="canopy_cover_pct" name="canopy_cover_pct" min="0" max="100" value="50">
+            <span class="range-value" id="canopy_cover_pct_val">50</span>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="leaf_area_index">Leaf Area Index (0-10)</label>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <input type="range" id="leaf_area_index" name="leaf_area_index" min="0" max="10" step="0.1" value="3">
+            <span class="range-value" id="leaf_area_index_val">3.0</span>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="chlorophyll_content">Chlorophyll Content (0-100)</label>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <input type="range" id="chlorophyll_content" name="chlorophyll_content" min="0" max="100" value="40">
+            <span class="range-value" id="chlorophyll_content_val">40</span>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="disease_risk">Disease Risk (0-1)</label>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <input type="range" id="disease_risk" name="disease_risk" min="0" max="1" step="0.1" value="0">
+            <span class="range-value" id="disease_risk_val">0.0</span>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="pest_pressure">Pest Pressure (0-1)</label>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <input type="range" id="pest_pressure" name="pest_pressure" min="0" max="1" step="0.1" value="0">
+            <span class="range-value" id="pest_pressure_val">0.0</span>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="nutrient_deficiency">Nutrient Deficiency</label>
+          <select id="nutrient_deficiency" name="nutrient_deficiency" class="form-input">
+            <option value="none">None</option>
+            <option value="N">Nitrogen (N)</option>
+            <option value="P">Phosphorus (P)</option>
+            <option value="K">Potassium (K)</option>
+            <option value="Mg">Magnesium (Mg)</option>
+            <option value="Fe">Iron (Fe)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="notes">Notes</label>
+          <textarea id="notes" name="notes" class="form-input" placeholder="Optional notes..." rows="3"></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block mt-8">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+          Save Reading
+        </button>
+      </form>
+    </div>
+  </div>
+
+<script>
+(function() {
+  const fieldSelect = document.getElementById('fieldSelect');
+  const phFieldSelect = document.getElementById('ph_field_id');
+  const addReadingBtn = document.getElementById('addReadingBtn');
+  const overlay = document.getElementById('addReadingOverlay');
+  const closeOverlayBtn = document.getElementById('closeOverlayBtn');
+  const form = document.getElementById('addReadingForm');
+  const historyList = document.getElementById('historyList');
+  const growthStageBadge = document.getElementById('growthStageBadge');
+  const canopyCover = document.getElementById('canopyCover');
+  const chlorophyllContent = document.getElementById('chlorophyllContent');
+  const leafAreaIndex = document.getElementById('leafAreaIndex');
+  const readingDate = document.getElementById('readingDate');
+  const diseaseRiskValue = document.getElementById('diseaseRiskValue');
+  const diseaseRiskBar = document.getElementById('diseaseRiskBar');
+  const pestPressureValue = document.getElementById('pestPressureValue');
+  const pestPressureBar = document.getElementById('pestPressureBar');
+  const nutrientDeficiencyBadge = document.getElementById('nutrientDeficiencyBadge');
+
+  let fields = [];
+  let allReadings = [];
+
+  function rangeSync(inputId, displayId) {
+    const input = document.getElementById(inputId);
+    const display = document.getElementById(displayId);
+    if (!input || !display) return;
+    const update = () => {
+      let val = parseFloat(input.value);
+      display.textContent = input.step && input.step < 1 ? val.toFixed(1) : Math.round(val);
+    };
+    input.addEventListener('input', update);
+    update();
+  }
+
+  rangeSync('canopy_cover_pct', 'canopy_cover_pct_val');
+  rangeSync('leaf_area_index', 'leaf_area_index_val');
+  rangeSync('chlorophyll_content', 'chlorophyll_content_val');
+  rangeSync('disease_risk', 'disease_risk_val');
+  rangeSync('pest_pressure', 'pest_pressure_val');
+
+  function riskColor(val) {
+    if (val == null) return 'var(--text-dim)';
+    if (val < 0.3) return 'var(--green)';
+    if (val <= 0.6) return 'var(--warning)';
+    return 'var(--danger)';
+  }
+
+  function deficiencyBadge(val) {
+    if (!val || val === 'none') return '<span class="badge-none badge-nutrient">None detected</span>';
+    return `<span class="badge-deficient badge-nutrient">${val} deficient</span>`;
+  }
+
+  function renderCurrentStatus(reading) {
+    if (!reading) {
+      growthStageBadge.textContent = '—';
+      growthStageBadge.className = 'chip chip-gray';
+      canopyCover.textContent = '—';
+      chlorophyllContent.textContent = '—';
+      leafAreaIndex.textContent = '—';
+      readingDate.textContent = '—';
+      diseaseRiskValue.textContent = '—';
+      diseaseRiskBar.style.width = '0%';
+      diseaseRiskBar.style.background = riskColor(null);
+      pestPressureValue.textContent = '—';
+      pestPressureBar.style.width = '0%';
+      pestPressureBar.style.background = riskColor(null);
+      nutrientDeficiencyBadge.innerHTML = deficiencyBadge('none');
+      return;
+    }
+
+    const stage = reading.growth_stage || '—';
+    growthStageBadge.textContent = stage;
+    growthStageBadge.className = 'chip ' + (stage === '—' ? 'chip-gray' : 'chip-green');
+
+    canopyCover.textContent = reading.canopy_cover_pct != null ? Math.round(reading.canopy_cover_pct) : '—';
+    chlorophyllContent.textContent = reading.chlorophyll_content != null ? Math.round(reading.chlorophyll_content) : '—';
+    leafAreaIndex.textContent = reading.leaf_area_index != null ? Number(reading.leaf_area_index).toFixed(1) : '—';
+    readingDate.textContent = reading.created_at ? fmtDate(reading.created_at) : '—';
+
+    const dr = reading.disease_risk != null ? reading.disease_risk : null;
+    diseaseRiskValue.textContent = dr != null ? Number(dr).toFixed(1) : '—';
+    diseaseRiskBar.style.width = dr != null ? (dr * 100) + '%' : '0%';
+    diseaseRiskBar.style.background = riskColor(dr);
+
+    const pp = reading.pest_pressure != null ? reading.pest_pressure : null;
+    pestPressureValue.textContent = pp != null ? Number(pp).toFixed(1) : '—';
+    pestPressureBar.style.width = pp != null ? (pp * 100) + '%' : '0%';
+    pestPressureBar.style.background = riskColor(pp);
+
+    nutrientDeficiencyBadge.innerHTML = deficiencyBadge(reading.nutrient_deficiency);
+  }
+
+  function renderHistory(readings) {
+    if (!readings || readings.length === 0) {
+      historyList.innerHTML = `<div class="empty-state"><h3>No readings yet</h3><p>Add a plant health reading to get started</p></div>`;
+      return;
+    }
+    let html = '';
+    readings.slice().reverse().forEach(r => {
+      const stage = r.growth_stage || '—';
+      const date = r.created_at ? fmtDateTime(r.created_at) : '—';
+      const canopy = r.canopy_cover_pct != null ? Math.round(r.canopy_cover_pct) + '%' : '—';
+      const dr = r.disease_risk != null ? 'D:' + Number(r.disease_risk).toFixed(1) : '';
+      const pp = r.pest_pressure != null ? ' P:' + Number(r.pest_pressure).toFixed(1) : '';
+      html += `<div class="history-item">
+        <div class="left">
+          <div class="stage">${stage}</div>
+          <div class="date">${date}</div>
+        </div>
+        <div class="right">
+          <div class="canopy">${canopy}</div>
+          <div class="detail">${dr}${pp}</div>
+        </div>
+      </div>`;
+    });
+    historyList.innerHTML = html;
+  }
+
+  async function loadFields() {
+    try {
+      fields = await api.getFields();
+      const opts = fields.map(f => `<option value="${f.id}">${f.name || 'Field #' + f.id}</option>`).join('');
+      const html = `<option value="">All fields</option>${opts}`;
+      fieldSelect.innerHTML = html;
+      phFieldSelect.innerHTML = `<option value="">Select a field...</option>${opts}`;
+    } catch (e) {
+      showToast('Failed to load fields: ' + e.message, 'error');
+    }
+  }
+
+  async function loadPlantHealth(fieldId) {
+    try {
+      let readings;
+      if (fieldId) {
+        readings = await api.getPlantHealth(fieldId);
+      } else {
+        readings = await api.getPlantHealth();
+      }
+      allReadings = readings || [];
+      renderHistory(allReadings);
+
+      if (fieldId) {
+        try {
+          const latest = await api.getLatestPlantHealth(fieldId);
+          renderCurrentStatus(latest);
+        } catch {
+          const sorted = [...allReadings].sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+          renderCurrentStatus(sorted[0] || null);
+        }
+      } else {
+        renderCurrentStatus(null);
+      }
+    } catch (e) {
+      showToast('Failed to load plant health data: ' + e.message, 'error');
+      renderCurrentStatus(null);
+    }
+  }
+
+  fieldSelect.addEventListener('change', () => {
+    loadPlantHealth(fieldSelect.value || null);
+  });
+
+  addReadingBtn.addEventListener('click', () => {
+    overlay.classList.remove('hidden');
+  });
+
+  closeOverlayBtn.addEventListener('click', () => {
+    overlay.classList.add('hidden');
+  });
+
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) overlay.classList.add('hidden');
+  });
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const data = {
+      field_id: parseInt(document.getElementById('ph_field_id').value),
+      growth_stage: document.getElementById('growth_stage').value,
+      canopy_cover_pct: parseFloat(document.getElementById('canopy_cover_pct').value),
+      leaf_area_index: parseFloat(document.getElementById('leaf_area_index').value),
+      chlorophyll_content: parseFloat(document.getElementById('chlorophyll_content').value),
+      disease_risk: parseFloat(document.getElementById('disease_risk').value),
+      pest_pressure: parseFloat(document.getElementById('pest_pressure').value),
+      nutrient_deficiency: document.getElementById('nutrient_deficiency').value,
+      notes: document.getElementById('notes').value || null,
+    };
+
+    if (!data.field_id || !data.growth_stage) {
+      showToast('Please fill in required fields', 'warning');
+      return;
+    }
+
+    try {
+      await api.createPlantHealth(data);
+      showToast('Plant health reading saved', 'success');
+      overlay.classList.add('hidden');
+      form.reset();
+      document.querySelectorAll('input[type="range"]').forEach(inp => {
+        inp.dispatchEvent(new Event('input'));
+      });
+      if (fieldSelect.value) {
+        await loadPlantHealth(fieldSelect.value);
+      } else if (data.field_id) {
+        fieldSelect.value = data.field_id;
+        await loadPlantHealth(data.field_id);
+      }
+    } catch (e) {
+      showToast('Failed to save: ' + e.message, 'error');
+    }
+  });
+
+  loadFields().then(() => loadPlantHealth(null));
+})();
+</script>
+</body>
+</html>

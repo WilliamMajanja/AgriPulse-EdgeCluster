@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>AgriPulse FMIS | Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/style.css">
+<style>
+.stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+@media (min-width: 768px) { .stats-grid { grid-template-columns: repeat(4, 1fr); } }
+
+.farm-row { display: flex; gap: 8px; align-items: center; margin-bottom: 16px; }
+.farm-row select { flex: 1; height: 40px; background: var(--bg-light); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); font-size: 0.85rem; padding: 0 12px; -webkit-appearance: none; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238B949E' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; cursor: pointer; }
+.farm-row select:focus { outline: none; border-color: var(--green); }
+.farm-add-btn { width: 40px; height: 40px; border-radius: 50%; background: var(--green); color: white; font-size: 1.4rem; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.farm-add-btn:active { background: var(--green-dark); transform: scale(0.95); }
+
+.notif-btn { position: relative; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 50%; color: var(--text-muted); background: none; border: none; cursor: pointer; }
+
+.moisture-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 4px; flex-shrink: 0; }
+.moisture-dot.red { background: var(--danger); }
+.moisture-dot.yellow { background: var(--warning); }
+.moisture-dot.green { background: var(--green); }
+.moisture-dot.blue { background: var(--info); }
+
+.activity-item { display: flex; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border-light); font-size: 0.85rem; }
+.activity-item:last-child { border-bottom: none; }
+.activity-icon { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.activity-icon.soil { background: rgba(88,166,255,0.15); color: var(--info); }
+.activity-icon.task { background: rgba(40,167,69,0.15); color: var(--green); }
+.activity-icon.alert { background: rgba(218,54,51,0.15); color: var(--danger); }
+.activity-icon.crop { background: rgba(210,153,34,0.15); color: var(--warning); }
+.activity-content { flex: 1; min-width: 0; }
+.activity-title { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.activity-meta { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
+
+.alert-card { background: rgba(218,54,51,0.08); border: 1px solid rgba(218,54,51,0.3); border-radius: var(--radius-sm); padding: 12px 14px; margin-bottom: 8px; display: flex; gap: 10px; font-size: 0.85rem; align-items: flex-start; }
+.alert-card.warning { background: rgba(210,153,34,0.08); border-color: rgba(210,153,34,0.3); }
+.alert-card.info { background: rgba(88,166,255,0.08); border-color: rgba(88,166,255,0.3); }
+.alert-icon { font-size: 1.1rem; flex-shrink: 0; line-height: 1.3; }
+.alert-text { flex: 1; }
+.alert-text .alert-title { font-weight: 600; }
+.alert-text .alert-time { font-size: 0.7rem; color: var(--text-muted); margin-top: 2px; }
+
+.error-box { text-align: center; padding: 40px 20px; }
+.error-box .error-icon { font-size: 2.5rem; margin-bottom: 12px; opacity: 0.5; }
+.error-box p { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 16px; }
+.error-box .retry-btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 20px; background: var(--green); color: white; border: none; border-radius: var(--radius-sm); font-weight: 600; font-size: 0.85rem; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+
+.field-card { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.field-card:active { border-color: var(--green); }
+
+.field-card .field-status-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.field-card .moisture-label { display: flex; align-items: center; gap: 4px; }
+</style>
+</head>
+<body>
+<header class="app-header">
+  <h1>AgriPulse FMIS</h1>
+  <button class="notif-btn" id="notif-btn" aria-label="Notifications">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+      <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+    </svg>
+    <span class="badge" id="alert-badge" style="display:none">0</span>
+  </button>
+</header>
+
+<main class="main-content" id="main-content">
+  <div id="dashboard-content"></div>
+</main>
+
+<nav class="bottom-nav">
+  <a href="index.html" class="active">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    <span>Dashboard</span>
+  </a>
+  <a href="fields.html">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+    <span>Fields</span>
+  </a>
+  <a href="soil.html">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
+    <span>Soil</span>
+  </a>
+  <a href="plants.html">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.9C15.5 4.9 17 3.5 19 2c1 2 2 4.5 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg>
+    <span>Plants</span>
+  </a>
+  <a href="tasks.html">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+    <span>Tasks</span>
+  </a>
+  <a href="chat.html">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+    <span>Chat</span>
+  </a>
+</nav>
+
+<div id="add-farm-overlay" class="overlay" style="display:none">
+  <div class="overlay-header">
+    <button onclick="closeAddFarm()" class="back-btn" aria-label="Back">←</button>
+    <h2>Add Farm</h2>
+  </div>
+  <div class="overlay-body">
+    <form id="add-farm-form">
+      <div class="form-group">
+        <label for="farm-name">Farm Name</label>
+        <input type="text" id="farm-name" class="form-input" placeholder="e.g. Green Acres" required>
+      </div>
+      <div class="form-group">
+        <label for="farm-latitude">Latitude</label>
+        <input type="number" id="farm-latitude" class="form-input" placeholder="e.g. 44.052" step="0.001" min="-90" max="90">
+      </div>
+      <div class="form-group">
+        <label for="farm-longitude">Longitude</label>
+        <input type="number" id="farm-longitude" class="form-input" placeholder="e.g. -123.086" step="0.001" min="-180" max="180">
+      </div>
+      <button type="submit" class="btn btn-primary btn-block">Create Farm</button>
+    </form>
+  </div>
+</div>
+
+<script src="/static/js/api.js"></script>
+<script>
+let selectedFarmId = null;
+let cachedSummary = null;
+let cachedFarms = [];
+let cachedAlerts = [];
+
+function initDashboard() {
+  const container = document.getElementById('dashboard-content');
+  showLoading(container);
+  loadData();
+  document.getElementById('add-farm-form').addEventListener('submit', handleAddFarm);
+}
+
+async function loadData() {
+  const container = document.getElementById('dashboard-content');
+  try {
+    const [summary, farms, alerts] = await Promise.all([
+      api.getDashboardSummary(),
+      api.getFarms(),
+      api.getDashboardAlerts().catch(() => []),
+    ]);
+    cachedSummary = summary;
+    cachedFarms = farms || [];
+    cachedAlerts = alerts || [];
+    if (!farms || farms.length === 0) {
+      container.innerHTML =
+        '<div class="empty-state">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>' +
+          '<h3>No farms yet</h3>' +
+          '<p>Create your first farm to get started.</p>' +
+          '<button onclick="openAddFarm()" class="btn btn-primary btn-sm mt-12">+ Create Farm</button>' +
+        '</div>';
+      return;
+    }
+    renderPage(summary, farms, alerts);
+  } catch (err) {
+    container.innerHTML =
+      '<div class="error-box">' +
+        '<div class="error-icon">⚠</div>' +
+        '<p>Failed to load dashboard: ' + escapeHtml(err.message) + '</p>' +
+        '<button onclick="loadData()" class="retry-btn">↻ Retry</button>' +
+      '</div>';
+  }
+}
+
+function renderPage(summary, farms, alerts) {
+  const container = document.getElementById('dashboard-content');
+  let html = '';
+  html += renderFarmSelector(farms);
+  html += renderStats(summary);
+  if (summary.field_status && summary.field_status.length > 0) {
+    html += '<div class="section-title">Field Status</div>';
+    html += renderFieldCards(summary);
+  }
+  html += '<div class="section-title">Quick Actions</div>';
+  html += renderQuickActions();
+  html += '<div class="section-title">Recent Activity</div>';
+  html += renderRecentActivity(summary);
+  if (alerts && alerts.length > 0) {
+    html += '<div class="section-title">Alerts</div>';
+    html += renderAlerts(alerts);
+  }
+  container.innerHTML = html;
+  updateAlertBadge(summary, alerts);
+}
+
+function renderFarmSelector(farms) {
+  const opts = farms.map(f =>
+    '<option value="' + f.id + '"' + (selectedFarmId === f.id ? ' selected' : '') + '>' + escapeHtml(f.name) + '</option>'
+  ).join('');
+  return '<div class="farm-row">' +
+    '<select id="farm-select" onchange="onFarmChange(this.value)">' +
+      '<option value="">All Farms</option>' +
+      opts +
+    '</select>' +
+    '<button class="farm-add-btn" onclick="openAddFarm()" aria-label="Add Farm">+</button>' +
+  '</div>';
+}
+
+function renderStats(summary) {
+  const fields = summary.total_fields != null ? summary.total_fields : 0;
+  const crops = summary.active_crops != null ? summary.active_crops : 0;
+  const tasks = summary.pending_tasks != null ? summary.pending_tasks : 0;
+  const todayAlerts = summary.today_alerts != null ? summary.today_alerts : (summary.critical_alerts || 0);
+  return '<div class="stats-grid">' +
+    '<div class="stat-card"><div class="number">' + fields + '</div><div class="label">Total Fields</div></div>' +
+    '<div class="stat-card"><div class="number">' + crops + '</div><div class="label">Active Crops</div></div>' +
+    '<div class="stat-card"><div class="number">' + tasks + '</div><div class="label">Pending Tasks</div></div>' +
+    '<div class="stat-card"><div class="number">' + todayAlerts + '</div><div class="label">Today\'s Alerts</div></div>' +
+  '</div>';
+}
+
+function renderFieldCards(summary) {
+  const fields = summary.field_status || [];
+  let filtered = fields;
+  if (selectedFarmId) {
+    filtered = fields.filter(f => f.farm_id === selectedFarmId || f.field_id === selectedFarmId);
+  }
+  return filtered.map(f => {
+    const fieldId = f.id || f.field_id || '';
+    const name = f.field_name || f.name || 'Unknown Field';
+    const crop = f.current_crop || f.crop || 'Fallow';
+    const moisture = f.moisture != null ? f.moisture : (f.moisture_pct != null ? f.moisture_pct : null);
+    const health = f.health_status || f.health || 'unknown';
+    const dotClass = moisture == null ? '' : (moisture < 30 ? 'red' : moisture < 60 ? 'yellow' : moisture < 80 ? 'green' : 'blue');
+    const healthChipClass = statusClass(health);
+    return '<div class="field-card card" onclick="navigateToField(\'' + fieldId + '\')">' +
+      '<div class="field-name">' + escapeHtml(name) + '</div>' +
+      '<div class="field-meta">' +
+        '<span>Crop: <strong>' + escapeHtml(crop) + '</strong></span>' +
+        (moisture != null
+          ? '<span class="moisture-label"><span class="moisture-dot ' + dotClass + '"></span>Moisture: ' + fmtNum(moisture, 0) + '%</span>'
+          : '') +
+      '</div>' +
+      '<div class="field-status-row">' +
+        (health ? '<span class="chip ' + healthChipClass + '">' + escapeHtml(health) + '</span>' : '') +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function renderQuickActions() {
+  return '<div class="quick-actions">' +
+    '<a href="soil.html" class="quick-action">' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>' +
+      '<span>Soil Reading</span>' +
+    '</a>' +
+    '<a href="irrigation.html" class="quick-action">' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/><line x1="12" y1="18" x2="12" y2="22"/><polyline points="8 20 12 18 16 20"/></svg>' +
+      '<span>Irrigate</span>' +
+    '</a>' +
+    '<a href="tasks.html?action=add" class="quick-action">' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>' +
+      '<span>New Task</span>' +
+    '</a>' +
+    '<a href="setup.html" class="quick-action">' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>' +
+      '<span>Setup Farm</span>' +
+    '</a>' +
+    '<a href="chat.html" class="quick-action">' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>' +
+      '<span>AI Assistant</span>' +
+    '</a>' +
+  '</div>';
+}
+
+function renderRecentActivity(summary) {
+  const readings = summary.recent_soil_readings || [];
+  const tasks = summary.upcoming_tasks || [];
+  const items = [];
+  if (readings.length > 0) {
+    readings.slice(0, 5).forEach(r => {
+      const name = r.field_name || ('Field #' + r.field_id);
+      const time = r.timestamp ? fmtDateTime(r.timestamp) : '';
+      const vals = [];
+      if (r.moisture_pct != null) vals.push(fmtNum(r.moisture_pct) + '% moisture');
+      if (r.temperature_c != null) vals.push(fmtNum(r.temperature_c) + '°C');
+      if (r.ph != null) vals.push('pH ' + fmtNum(r.ph));
+      items.push({
+        icon: 'soil',
+        title: name + ' — ' + (vals.join(', ') || 'reading recorded'),
+        meta: time,
+      });
+    });
+  } else if (tasks.length > 0) {
+    tasks.slice(0, 5).forEach(t => {
+      items.push({
+        icon: 'task',
+        title: t.title || 'Task',
+        meta: (t.assigned_to ? t.assigned_to + ' · ' : '') + (t.due_date ? 'Due ' + fmtDate(t.due_date) : ''),
+      });
+    });
+  }
+  if (items.length === 0) {
+    return '<div class="card"><div class="text-muted text-sm" style="text-align:center;padding:8px 0">No recent activity</div></div>';
+  }
+  return '<div class="card">' + items.map(i =>
+    '<div class="activity-item">' +
+      '<div class="activity-icon ' + i.icon + '">' +
+        (i.icon === 'soil' ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>' : '') +
+        (i.icon === 'task' ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>' : '') +
+      '</div>' +
+      '<div class="activity-content"><div class="activity-title">' + escapeHtml(i.title) + '</div><div class="activity-meta">' + i.meta + '</div></div>' +
+    '</div>'
+  ).join('') + '</div>';
+}
+
+function renderAlerts(alerts) {
+  if (!alerts || alerts.length === 0) return '';
+  return alerts.map(a => {
+    const type = a.type || a.severity || 'warning';
+    const cls = type === 'critical' || type === 'error' ? '' : (type === 'warning' ? ' warning' : ' info');
+    const icon = type === 'critical' || type === 'error' ? '🔴' : type === 'warning' ? '⚠️' : 'ℹ️';
+    return '<div class="alert-card' + cls + '">' +
+      '<span class="alert-icon">' + icon + '</span>' +
+      '<div class="alert-text">' +
+        '<div class="alert-title">' + escapeHtml(a.message || a.title || 'Alert') + '</div>' +
+        (a.timestamp ? '<div class="alert-time">' + fmtDateTime(a.timestamp) + '</div>' : '') +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function updateAlertBadge(summary, alerts) {
+  const badge = document.getElementById('alert-badge');
+  if (!badge) return;
+  const count = (alerts && alerts.length > 0) ? alerts.length : (summary.today_alerts || summary.critical_alerts || 0);
+  if (count > 0) {
+    badge.textContent = count > 99 ? '99+' : count;
+    badge.style.display = 'flex';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+function onFarmChange(farmId) {
+  selectedFarmId = farmId ? parseInt(farmId) : null;
+  if (cachedSummary && cachedFarms) {
+    const container = document.getElementById('dashboard-content');
+    const alerts = cachedAlerts || [];
+    renderPage(cachedSummary, cachedFarms, alerts);
+  }
+}
+
+function navigateToField(id) {
+  if (id) {
+    location.href = 'fields.html?id=' + id;
+  } else {
+    location.href = 'fields.html';
+  }
+}
+
+function openAddFarm() {
+  document.getElementById('add-farm-overlay').style.display = '';
+  document.getElementById('add-farm-form').reset();
+}
+
+function closeAddFarm() {
+  document.getElementById('add-farm-overlay').style.display = 'none';
+}
+
+async function handleAddFarm(e) {
+  e.preventDefault();
+  const name = document.getElementById('farm-name').value.trim();
+  const latitude = parseFloat(document.getElementById('farm-latitude').value) || undefined;
+  const longitude = parseFloat(document.getElementById('farm-longitude').value) || undefined;
+  if (!name) {
+    showToast('Farm name is required', 'error');
+    return;
+  }
+  const btn = e.target.querySelector('button[type="submit"]');
+  btn.disabled = true;
+  btn.textContent = 'Creating...';
+  try {
+    await api.createFarm({ name, latitude, longitude });
+    showToast('Farm created successfully', 'success');
+    closeAddFarm();
+    loadData();
+  } catch (err) {
+    showToast('Failed to create farm: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Create Farm';
+  }
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+function fmtDate(iso) {
+  if (!iso) return '';
+  try { return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }); }
+  catch (e) { return iso; }
+}
+
+function fmtDateTime(iso) {
+  if (!iso) return '';
+  try { return new Date(iso).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }); }
+  catch (e) { return iso; }
+}
+
+function fmtNum(n, d) {
+  if (n == null) return '—';
+  d = d != null ? d : 1;
+  return Number(n).toFixed(d);
+}
+
+function statusClass(s) {
+  if (!s) return 'chip-gray';
+  const st = String(s).toLowerCase();
+  if (st === 'healthy' || st === 'good' || st === 'completed' || st === 'active') return 'chip-green';
+  if (st === 'warning' || st === 'fair' || st === 'in_progress') return 'chip-yellow';
+  if (st === 'critical' || st === 'poor' || st === 'failed') return 'chip-red';
+  return 'chip-gray';
+}
+
+ws.on('alert', function (alert) {
+  const badge = document.getElementById('alert-badge');
+  if (badge) {
+    const cur = parseInt(badge.textContent) || 0;
+    badge.textContent = cur + 1;
+    badge.style.display = 'flex';
+  }
+});
+
+document.addEventListener('DOMContentLoaded', function () {
+  initDashboard();
+  const notifBtn = document.getElementById('notif-btn');
+  if (notifBtn) {
+    notifBtn.addEventListener('click', function () {
+      if (cachedAlerts && cachedAlerts.length > 0) {
+        showToast(cachedAlerts.length + ' active alert' + (cachedAlerts.length > 1 ? 's' : ''), 'warning');
+      } else {
+        showToast('No active alerts', 'info');
+      }
+    });
+  }
+});
+</script>
+</body>
+</html>

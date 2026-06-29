@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Farm Setup - AgriPulse FMIS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/style.css">
+<script src="/static/js/api.js"></script>
+<style>
+.onboard-container { padding-top: calc(var(--header-height) + 12px); padding-bottom: calc(var(--nav-height) + 20px); padding-left: 12px; padding-right: 12px; max-width: 768px; margin: 0 auto; min-height: 100dvh; }
+
+.onboard-textarea { width: 100%; min-height: 180px; padding: 14px; background: var(--bg-light); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); font-size: 0.9rem; line-height: 1.6; resize: vertical; font-family: inherit; transition: border-color 0.2s; }
+.onboard-textarea:focus { outline: none; border-color: var(--green); }
+.onboard-textarea::placeholder { color: var(--text-dim); }
+
+.thought-stream { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; max-height: 400px; overflow-y: auto; padding: 4px 0; }
+.thought-bubble { padding: 10px 14px; border-radius: 12px; background: var(--bg-card); border: 1px solid var(--border); font-size: 0.85rem; line-height: 1.5; color: var(--text); animation: fadeInUp 0.3s ease; border-left: 3px solid var(--info); }
+.thought-bubble.typing { border-left-color: var(--warning); }
+.thought-bubble .thought-label { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--info); margin-bottom: 4px; }
+.thought-bubble.typing .thought-label { color: var(--warning); }
+.thought-bubble .thought-text { white-space: pre-wrap; word-wrap: break-word; }
+
+.template-section { margin-bottom: 20px; }
+.template-section .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.template-section .section-header h3 { font-size: 0.9rem; font-weight: 600; }
+.template-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; margin-bottom: 10px; }
+.template-card .field-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
+.template-card .field-row label { font-size: 0.75rem; color: var(--text-muted); min-width: 60px; }
+.template-card .field-row input, .template-card .field-row select { flex: 1; min-width: 100px; padding: 8px 10px; background: var(--bg-light); border: 1px solid var(--border); border-radius: var(--radius-xs); color: var(--text); font-size: 0.85rem; }
+.template-card .field-row input:focus, .template-card .field-row select:focus { outline: none; border-color: var(--green); }
+.template-card .crop-subsection { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border-light); }
+.template-card .crop-subsection .sub-label { font-size: 0.7rem; color: var(--text-muted); font-weight: 600; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.03em; }
+.template-card .remove-btn { background: none; border: none; color: var(--danger); font-size: 1.2rem; cursor: pointer; padding: 4px; line-height: 1; }
+.template-card .toggle-crop-btn { font-size: 0.75rem; color: var(--info); background: none; border: none; cursor: pointer; padding: 4px 0; }
+
+.onboard-actions { display: flex; gap: 10px; margin-top: 20px; }
+.onboard-actions .btn { flex: 1; }
+
+.phase { display: none; }
+.phase.active { display: block; }
+
+@keyframes fadeInUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+</head>
+<body>
+<div class="app-header">
+  <a href="/" class="back-btn" aria-label="Back">&#x2190;</a>
+  <h1>Farm Setup</h1>
+</div>
+
+<div class="onboard-container">
+  <!-- Phase 1: Spec Input -->
+  <div class="phase active" id="phase-input">
+    <p class="text-muted text-sm mb-12">Describe your farm in plain language. Include fields, crops, and any tasks you need to track.</p>
+    <textarea class="onboard-textarea" id="farm-spec" placeholder="Example: '200-acre organic farm in Oregon's Willamette Valley. Four fields: North Field (20 acres, loam, Roma tomatoes planted June 1 2026), South Field (35 acres, clay loam, hard red winter wheat planted April 15 2026), ... Also need to set up drip irrigation in North Field by June 1, and order tomato cages.'"></textarea>
+    <div class="onboard-actions">
+      <button class="btn btn-primary btn-block" id="analyze-btn" onclick="startAnalysis()">Analyze Farm</button>
+    </div>
+  </div>
+
+  <!-- Phase 2: Streaming Analysis -->
+  <div class="phase" id="phase-streaming">
+    <div class="section-title">AI Analysis</div>
+    <div class="thought-stream" id="thought-stream"></div>
+    <div class="text-center text-muted text-sm" id="stream-status">Analyzing your farm specification...</div>
+  </div>
+
+  <!-- Phase 3: Template Review -->
+  <div class="phase" id="phase-review">
+    <div class="section-title">Review &amp; Confirm</div>
+
+    <!-- Farm -->
+    <div class="template-section" id="review-farm">
+      <div class="section-header"><h3>Farm</h3></div>
+      <div class="template-card">
+        <div class="field-row">
+          <label>Name</label>
+          <input type="text" id="tpl-farm-name" class="form-input">
+        </div>
+        <div class="field-row">
+          <label>Latitude</label>
+          <input type="number" id="tpl-farm-lat" class="form-input" step="0.001" placeholder="e.g. 44.052">
+        </div>
+        <div class="field-row">
+          <label>Longitude</label>
+          <input type="number" id="tpl-farm-lng" class="form-input" step="0.001" placeholder="e.g. -123.086">
+        </div>
+      </div>
+    </div>
+
+    <!-- Fields -->
+    <div class="template-section" id="review-fields">
+      <div class="section-header"><h3>Fields</h3><button class="btn btn-sm btn-secondary" onclick="addFieldCard()">+ Add Field</button></div>
+      <div id="fields-container"></div>
+    </div>
+
+    <!-- Tasks -->
+    <div class="template-section" id="review-tasks">
+      <div class="section-header"><h3>Tasks</h3><button class="btn btn-sm btn-secondary" onclick="addTaskCard()">+ Add Task</button></div>
+      <div id="tasks-container"></div>
+    </div>
+
+    <div class="onboard-actions" style="padding-bottom:40px">
+      <button class="btn btn-primary btn-block" id="confirm-btn" onclick="confirmOnboard()">Confirm &amp; Create</button>
+    </div>
+  </div>
+</div>
+
+<nav class="bottom-nav">
+  <a href="/"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg><span>Dashboard</span></a>
+  <a href="/fields.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 22L12 2l10 20H2z"/><path d="M7 22l5-8 5 8H7z"/></svg><span>Fields</span></a>
+  <a href="/soil.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg><span>Soil</span></a>
+  <a href="/chat.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>Chat</span></a>
+  <a href="/setup.html" class="active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg><span>Setup</span></a>
+</nav>
+
+<script>
+let pendingTemplate = null;
+let onboardTimeout = null;
+
+// ── Phase 1 → 2 ──
+
+function startAnalysis() {
+  const spec = document.getElementById('farm-spec').value.trim();
+  if (!spec) { showToast('Please describe your farm first', 'warning'); return; }
+
+  showPhase('phase-streaming');
+  document.getElementById('thought-stream').innerHTML = '';
+  document.getElementById('stream-status').textContent = 'Analyzing your farm specification...';
+
+  const sent = ws.onboard(spec);
+  if (!sent) {
+    onOnboardError({ detail: 'Not connected to server. Please wait a moment and try again.' });
+    return;
+  }
+  if (onboardTimeout) clearTimeout(onboardTimeout);
+  onboardTimeout = setTimeout(function() {
+    onOnboardError({ detail: 'Analysis timed out. The AI model may be unavailable.' });
+  }, 90000);
+}
+
+function clearOnboardTimeout() {
+  if (onboardTimeout) { clearTimeout(onboardTimeout); onboardTimeout = null; }
+}
+
+function onOnboardError(data) {
+  clearOnboardTimeout();
+  const status = document.getElementById('stream-status');
+  if (status) status.textContent = 'Analysis failed';
+  const msg = (data && data.detail) ? data.detail : 'Onboarding failed.';
+  showToast(msg, 'error');
+  const btn = document.getElementById('analyze-btn');
+  if (btn) { btn.disabled = false; btn.textContent = 'Analyze Farm'; }
+  setTimeout(function() { showPhase('phase-input'); }, 1200);
+}
+
+// ── Phase 2: Streaming ──
+
+ws.on('onboard_thought', function(data) {
+  const container = document.getElementById('thought-stream');
+  const bubble = document.createElement('div');
+  bubble.className = 'thought-bubble typing';
+  bubble.innerHTML = '<div class="thought-label">Analyzing</div><div class="thought-text">' + escapeHtml(data.text) + '</div>';
+  container.appendChild(bubble);
+  container.scrollTop = container.scrollHeight;
+});
+
+ws.on('onboard_template', function(data) {
+  clearOnboardTimeout();
+  document.getElementById('stream-status').textContent = 'Analysis complete';
+  pendingTemplate = data;
+  renderTemplate(data);
+  showPhase('phase-review');
+});
+
+ws.on('onboard_error', onOnboardError);
+
+// ── Phase 3: Render Template ──
+
+function renderTemplate(data) {
+  const farm = data.farm || {};
+  document.getElementById('tpl-farm-name').value = farm.name || '';
+  document.getElementById('tpl-farm-lat').value = farm.latitude != null ? farm.latitude : '';
+  document.getElementById('tpl-farm-lng').value = farm.longitude != null ? farm.longitude : '';
+
+  renderFields(data.fields || []);
+  renderTasks(data.tasks || []);
+}
+
+function renderFields(fields) {
+  const container = document.getElementById('fields-container');
+  container.innerHTML = '';
+  fields.forEach(function(f, i) { container.appendChild(buildFieldCard(f, i)); });
+}
+
+function renderTasks(tasks) {
+  const container = document.getElementById('tasks-container');
+  container.innerHTML = '';
+  tasks.forEach(function(t, i) { container.appendChild(buildTaskCard(t, i)); });
+}
+
+function buildFieldCard(f, i) {
+  const div = document.createElement('div');
+  div.className = 'template-card';
+  div.dataset.index = i;
+  const crop = f.crop_cycle || {};
+  div.innerHTML =
+    '<div class="field-row">' +
+      '<label>Name</label><input type="text" class="tpl-field-name" value="' + escAttr(f.name || '') + '">' +
+      '<label style="min-width:40px">Ha</label><input type="number" class="tpl-field-area" step="0.1" min="0.1" value="' + (f.area_hectares || 10) + '" style="min-width:60px">' +
+      '<button class="remove-btn" onclick="removeField(this)" title="Remove field">&times;</button>' +
+    '</div>' +
+    '<div class="field-row">' +
+      '<label>Soil</label><select class="tpl-field-soil">' +
+        ['clay','loam','sandy','silt','peat','chalk','clay_loam'].map(function(s) {
+          return '<option value="' + s + '"' + (f.soil_type === s ? ' selected' : '') + '>' + s + '</option>';
+        }).join('') +
+      '</select>' +
+      '<label style="min-width:28px"><input type="checkbox" class="tpl-field-crop-toggle"' + (crop.crop_type ? ' checked' : '') + ' onchange="toggleCrop(this)"> Crop</label>' +
+    '</div>' +
+    '<div class="crop-subsection' + (crop.crop_type ? '' : ' hidden') + '">' +
+      '<div class="sub-label">Crop Cycle</div>' +
+      '<div class="field-row">' +
+        '<label>Type</label><input type="text" class="tpl-crop-type" value="' + escAttr(crop.crop_type || '') + '">' +
+        '<label>Variety</label><input type="text" class="tpl-crop-variety" value="' + escAttr(crop.variety || '') + '">' +
+      '</div>' +
+      '<div class="field-row">' +
+        '<label>Planted</label><input type="date" class="tpl-crop-plant" value="' + escAttr(crop.planting_date || '') + '">' +
+        '<label>Harvest</label><input type="date" class="tpl-crop-harvest" value="' + escAttr(crop.expected_harvest_date || '') + '">' +
+      '</div>' +
+      '<div class="field-row">' +
+        '<label>Status</label><select class="tpl-crop-status">' +
+          ['planned','planted','growing','harvested','failed'].map(function(s) {
+            return '<option value="' + s + '"' + (crop.status === s ? ' selected' : '') + '>' + s + '</option>';
+          }).join('') +
+        '</select>' +
+      '</div>' +
+    '</div>';
+  return div;
+}
+
+function buildTaskCard(t, i) {
+  const div = document.createElement('div');
+  div.className = 'template-card';
+  div.dataset.index = i;
+  div.innerHTML =
+    '<div class="field-row">' +
+      '<label>Title</label><input type="text" class="tpl-task-title" value="' + escAttr(t.title || '') + '">' +
+      '<button class="remove-btn" onclick="removeTask(this)" title="Remove task">&times;</button>' +
+    '</div>' +
+    '<div class="field-row">' +
+      '<label>Priority</label><select class="tpl-task-priority">' +
+        ['low','medium','high','critical'].map(function(p) {
+          return '<option value="' + p + '"' + (t.priority === p ? ' selected' : '') + '>' + p + '</option>';
+        }).join('') +
+      '</select>' +
+      '<label>Due</label><input type="date" class="tpl-task-due" value="' + escAttr(t.due_date ? t.due_date.slice(0,10) : '') + '">' +
+    '</div>';
+  return div;
+}
+
+function toggleCrop(checkbox) {
+  var subsection = checkbox.closest('.template-card').querySelector('.crop-subsection');
+  subsection.classList.toggle('hidden', !checkbox.checked);
+}
+
+function removeField(btn) {
+  btn.closest('.template-card').remove();
+}
+
+function removeTask(btn) {
+  btn.closest('.template-card').remove();
+}
+
+function addFieldCard() {
+  var container = document.getElementById('fields-container');
+  var card = buildFieldCard({ name: '', area_hectares: 10, soil_type: 'loam', crop_cycle: null }, container.children.length);
+  container.appendChild(card);
+}
+
+function addTaskCard() {
+  var container = document.getElementById('tasks-container');
+  var card = buildTaskCard({ title: '', priority: 'medium', due_date: '' }, container.children.length);
+  container.appendChild(card);
+}
+
+// ── Collect & Confirm ──
+
+function collectTemplate() {
+  var farm = {
+    name: document.getElementById('tpl-farm-name').value.trim(),
+    latitude: parseNumOrNull(document.getElementById('tpl-farm-lat').value),
+    longitude: parseNumOrNull(document.getElementById('tpl-farm-lng').value),
+  };
+
+  var fields = [];
+  document.querySelectorAll('#fields-container .template-card').forEach(function(card) {
+    var cropEnabled = card.querySelector('.tpl-field-crop-toggle').checked;
+    var cropType = card.querySelector('.tpl-crop-type');
+    fields.push({
+      name: card.querySelector('.tpl-field-name').value.trim(),
+      area_hectares: parseNumOrDefault(card.querySelector('.tpl-field-area').value, 10),
+      soil_type: card.querySelector('.tpl-field-soil').value,
+      create: true,
+      crop_cycle: cropEnabled && cropType && cropType.value.trim() ? {
+        crop_type: cropType.value.trim(),
+        variety: card.querySelector('.tpl-crop-variety').value.trim() || null,
+        planting_date: card.querySelector('.tpl-crop-plant').value || null,
+        expected_harvest_date: card.querySelector('.tpl-crop-harvest').value || null,
+        status: card.querySelector('.tpl-crop-status').value,
+      } : null,
+    });
+  });
+
+  var tasks = [];
+  document.querySelectorAll('#tasks-container .template-card').forEach(function(card) {
+    var title = card.querySelector('.tpl-task-title').value.trim();
+    if (title) {
+      tasks.push({
+        title: title,
+        description: '',
+        priority: card.querySelector('.tpl-task-priority').value,
+        due_date: card.querySelector('.tpl-task-due').value || null,
+        create: true,
+      });
+    }
+  });
+
+  return { farm: farm, fields: fields, tasks: tasks };
+}
+
+async function confirmOnboard() {
+  var data = collectTemplate();
+  if (!data.farm.name) { showToast('Farm name is required', 'error'); return; }
+
+  var btn = document.getElementById('confirm-btn');
+  btn.disabled = true;
+  btn.textContent = 'Creating...';
+
+  try {
+    var result = await api._fetch('POST', '/api/v1/farms/onboard/confirm', data);
+    showToast('Farm "' + result.farm_name + '" created with ' + result.fields_created + ' fields and ' + result.tasks_created + ' tasks', 'success');
+    setTimeout(function() { window.location.href = '/?farm_id=' + result.farm_id; }, 1500);
+  } catch (e) {
+    showToast(e.message, 'error');
+    btn.disabled = false;
+    btn.textContent = 'Confirm & Create';
+  }
+}
+
+// ── Helpers ──
+
+function showPhase(id) {
+  document.querySelectorAll('.phase').forEach(function(p) { p.classList.remove('active'); });
+  document.getElementById(id).classList.add('active');
+}
+
+function escAttr(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  var d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+function parseNumOrNull(val) {
+  if (val == null || String(val).trim() === '') return null;
+  var n = parseFloat(val);
+  return isNaN(n) ? null : n;
+}
+
+function parseNumOrDefault(val, def) {
+  if (val == null || String(val).trim() === '') return def;
+  var n = parseFloat(val);
+  return isNaN(n) ? def : n;
+}
+</script>
+</body>
+</html>
