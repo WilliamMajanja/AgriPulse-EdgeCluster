@@ -4,6 +4,17 @@
 
 AgriPulse runs entirely on edge hardware: no cloud dependencies, no data leaving the farm. A FastAPI backend orchestrates sensor sampling, actuator control, and AI inference via a local Ollama model, while a lightweight HTML/CSS/JS frontend delivers a responsive dashboard accessible from any browser on the LAN.
 
+<p align="center">
+  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.12-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python"></a>
+  <a href="https://fastapi.tiangolo.com/"><img src="https://img.shields.io/badge/FastAPI-0.115%2B-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI"></a>
+  <a href="https://www.sqlalchemy.org/"><img src="https://img.shields.io/badge/SQLAlchemy-2.x-D71F00?style=for-the-badge&logo=sqlalchemy&logoColor=white" alt="SQLAlchemy"></a>
+  <a href="https://ollama.com/"><img src="https://img.shields.io/badge/Ollama-llama3.1-000000?style=for-the-badge&logo=ollama&logoColor=white" alt="Ollama"></a>
+  <a href="https://www.sqlite.org/"><img src="https://img.shields.io/badge/SQLite-3-003B57?style=for-the-badge&logo=sqlite&logoColor=white" alt="SQLite"></a>
+  <a href="https://www.docker.com/"><img src="https://img.shields.io/badge/Docker-Compose-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker"></a>
+  <a href="https://kubernetes.io/"><img src="https://img.shields.io/badge/Kubernetes-Kustomize-326CE5?style=for-the-badge&logo=kubernetes&logoColor=white" alt="Kubernetes"></a>
+  <a href="https://www.raspberrypi.com/"><img src="https://img.shields.io/badge/Raspberry%20Pi-5-C51A4A?style=for-the-badge&logo=raspberrypi&logoColor=white" alt="Raspberry Pi"></a>
+</p>
+
 ---
 
 ## Highlights
@@ -20,15 +31,48 @@ AgriPulse runs entirely on edge hardware: no cloud dependencies, no data leaving
 
 ## Tech Stack
 
-| Layer        | Technology                                                        |
-| ------------ | ----------------------------------------------------------------- |
-| Backend      | Python 3.12, FastAPI, Uvicorn, SQLAlchemy 2.x, Pydantic 2.x      |
-| Frontend     | Vanilla HTML / CSS / JavaScript (no build step, no framework)     |
-| Database     | SQLite (default) or PostgreSQL                                    |
-| AI / LLM     | Ollama (`llama3.1:8b`), streaming via `/api/chat`                 |
-| Realtime     | WebSocket (`/ws`) for telemetry, chat, onboarding, and tools      |
-| Hardware     | Raspberry Pi 5, Hailo-10H AI HAT+, Sense HAT, ADS1115, soil probes |
-| Deployment   | Docker Compose, Kubernetes (Kustomize)                            |
+<p align="center"><strong>Backend</strong></p>
+<p align="center">
+  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.12-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python"></a>
+  <a href="https://fastapi.tiangolo.com/"><img src="https://img.shields.io/badge/FastAPI-0.115%2B-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI"></a>
+  <a href="https://www.sqlalchemy.org/"><img src="https://img.shields.io/badge/SQLAlchemy-2.x-D71F00?style=for-the-badge&logo=sqlalchemy&logoColor=white" alt="SQLAlchemy"></a>
+  <a href="https://docs.pydantic.dev/"><img src="https://img.shields.io/badge/Pydantic-2.x-E92063?style=for-the-badge&logo=pydantic&logoColor=white" alt="Pydantic"></a>
+  <a href="https://www.uvicorn.org/"><img src="https://img.shields.io/badge/Uvicorn-ASGI-3D7E9A?style=for-the-badge" alt="Uvicorn"></a>
+  <a href="https://www.python-httpx.org/"><img src="https://img.shields.io/badge/HTTPX-0.27%2B-E0234E?style=for-the-badge" alt="HTTPX"></a>
+</p>
+
+<p align="center"><strong>AI / LLM</strong></p>
+<p align="center">
+  <a href="https://ollama.com/"><img src="https://img.shields.io/badge/Ollama-local-000000?style=for-the-badge&logo=ollama&logoColor=white" alt="Ollama"></a>
+  <a href="https://llama.meta.com/"><img src="https://img.shields.io/badge/Llama-3.1-7C3AED?style=for-the-badge" alt="Llama 3.1"></a>
+</p>
+
+<p align="center"><strong>Frontend</strong></p>
+<p align="center">
+  <a href="https://developer.mozilla.org/en-US/docs/Glossary/HTML5"><img src="https://img.shields.io/badge/HTML5-5-E34F26?style=for-the-badge&logo=html5&logoColor=white" alt="HTML5"></a>
+  <a href="https://developer.mozilla.org/en-US/docs/Web/CSS"><img src="https://img.shields.io/badge/CSS-3-1572B6?style=for-the-badge&logo=css&logoColor=white" alt="CSS"></a>
+  <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript"><img src="https://img.shields.io/badge/JavaScript-ES2022-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black" alt="JavaScript"></a>
+</p>
+
+<p align="center"><strong>Database</strong></p>
+<p align="center">
+  <a href="https://www.sqlite.org/"><img src="https://img.shields.io/badge/SQLite-default-003B57?style=for-the-badge&logo=sqlite&logoColor=white" alt="SQLite"></a>
+  <a href="https://www.postgresql.org/"><img src="https://img.shields.io/badge/PostgreSQL-optional-4169E1?style=for-the-badge&logo=postgresql&logoColor=white" alt="PostgreSQL"></a>
+</p>
+
+<p align="center"><strong>Deployment</strong></p>
+<p align="center">
+  <a href="https://www.docker.com/"><img src="https://img.shields.io/badge/Docker-Compose-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker"></a>
+  <a href="https://kubernetes.io/"><img src="https://img.shields.io/badge/Kubernetes-Kustomize-326CE5?style=for-the-badge&logo=kubernetes&logoColor=white" alt="Kubernetes"></a>
+</p>
+
+<p align="center"><strong>Edge Hardware</strong></p>
+<p align="center">
+  <a href="https://www.raspberrypi.com/"><img src="https://img.shields.io/badge/Raspberry%20Pi-5%20(16GB)-C51A4A?style=for-the-badge&logo=raspberrypi&logoColor=white" alt="Raspberry Pi 5"></a>
+  <a href="https://hailo.ai/"><img src="https://img.shields.io/badge/Hailo-10H%20(26%20TOPS)-00A86B?style=for-the-badge" alt="Hailo-10H"></a>
+</p>
+
+The frontend ships as vanilla HTML/CSS/JS with **no build step and no framework**, and real-time communication flows over a single WebSocket (`/ws`) for telemetry, chat, onboarding, and tool calls.
 
 ---
 
