@@ -1,63 +1,122 @@
-# AgriPulse: Intelligent Edge-Computing for Next-Generation Agriculture
+# AgriPulse FMIS
 
-[![Status](https://img.shields.io/badge/status-active-success.svg)]()
-[![License](https://img.shields.io/badge/license-proprietary-red.svg)]()
+Farm Management Information System with sovereign edge computing control. Runs on a 3-node Raspberry Pi 5 cluster with Hailo-10H AI acceleration, real-time sensor monitoring, and AI-powered agronomy.
 
-## Executive Summary
-
-AgriPulse is a decentralized, edge-first agricultural control system designed for maximum efficiency, security, and sustainability. By leveraging cutting-edge System-on-Chip (SoC) hardware, specialized AI accelerators, and a blockchain-secured data layer, AgriPulse eliminates the dependency on fragile, high-latency cloud infrastructure. Our solution provides growers with real-time, actionable insights and automated environmental control, directly from the field. This empowers smarter resource management, increases crop yields, and ensures a tamper-proof audit trail for all farm operations.
-
-## Key Features
-
--   **Hyper-Local Edge AI:** On-device machine learning powered by a 40-TOPS Hailo-10H NPU for real-time crop monitoring, pest detection, and yield analysis without requiring an internet connection.
--   **Decentralized Data Integrity:** Every sensor reading and actuator event is cryptographically fingerprinted and anchored to the Minima blockchain, creating an immutable, auditable log of farm activities.
--   **Robust PiNet Architecture:** A diskless network boot system enhances reliability and simplifies management. Worker nodes (AI, Telemetry) boot directly from a central, high-speed NVMe on the Master Node, minimizing points of failure.
--   **Comprehensive Environmental Sensing:** A suite of industrial-grade sensors provides a holistic view of the growing environment, monitoring everything from soil chemistry (N, P, K, pH, Ammonia) to micro-climates (temperature, humidity, pressure).
--   **Automated Environmental Control:** A closed-loop system intelligently manages critical actuators including irrigation pumps, nutrient dosing systems, atmospheric misters, full-spectrum grow lights, and ventilation fans.
--   **Intuitive Real-time Dashboard:** A responsive web interface provides at-a-glance status of all nodes, live sensor data, system logs, and direct chat access to an AI Systems Architect for operational support.
-
-## System Architecture
-
-The AgriPulse cluster operates on a three-node model, ensuring a clear separation of concerns and optimized performance.
+## Architecture
 
 ```
-+---------------------------------+
-|     Master Node (RPi 5, NVMe)   |
-| PiNet Server, Actuator Control  |
-+---------------------------------+
-       |           |
- (PiNet/LTSP)  (PiNet/LTSP)
-       |           |
-       v           v
-+----------------+  +-------------------+
-|  Sentry Node   |  |  Telemetry Node   |
-| (RPi 5, Hailo) |  | (RPi 5, Sensors)  |
-+----------------+  +-------------------+
-
+┌─────────────────────────────────────────────────────┐
+│                    Frontend (HTML/CSS/JS)            │
+│  Dashboard │ Fields │ Soil │ Plants │ Tasks │ Chat  │
+└──────────────────────┬──────────────────────────────┘
+                       │ REST + WebSocket
+┌──────────────────────┴──────────────────────────────┐
+│              FastAPI Backend (Python)                │
+│  Routes │ WebSocket Manager │ Sensor Manager        │
+│  SQLAlchemy │ Ollama Service │ Actuator Control     │
+└──────────┬───────────────────────────┬───────────────┘
+           │                           │
+    ┌──────┴──────┐           ┌────────┴────────┐
+    │  SQLite/     │           │   Ollama        │
+    │  PostgreSQL  │           │   (LLM)         │
+    └─────────────┘           └─────────────────┘
 ```
 
-## Technology Stack
+## Quick Start
 
-### Hardware
-*   **Compute:** 3x Raspberry Pi 5 (16GB)
-*   **AI Acceleration:** Hailo-10H NPU (via Raspberry Pi AI HAT+ 2)
-*   **Storage:** 512GB NVMe SSD (PCIe Gen 3)
-*   **Sensors:** Sense HAT, ADS1115 ADC, Global Shutter Camera, Industrial Probes (pH, Moisture, NPK, NH₃)
-*   **Actuators:** Relay Modules, Solenoid Valves, Peristaltic Pumps, PWM Fans, LED Drivers
+```bash
+# Install dependencies
+pip install -r backend/requirements.txt
 
-### Software & Protocols
-*   **OS/Networking:** Raspberry Pi OS, PiNet (LTSP) for Network Booting
-*   **AI Inference:** Python, Hailo TAPPAS / Model Zoo
-*   **Data Integrity:** Minima Blockchain (CLI/RPC)
-*   **Dashboard:** React, TypeScript, TailwindCSS, Gemini API (for AI Architect)
+# Run with simulated sensors (default)
+uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
 
-## Investment Opportunity
+# Or using the run script
+chmod +x run.sh && ./run.sh
+```
 
-The precision agriculture market is projected to reach USD 20.84 billion by 2030. AgriPulse is uniquely positioned to capture a significant share of this market by addressing the critical needs of modern agriculture: data sovereignty, operational resilience, and resource efficiency. Our "Edge-First" approach is a paradigm shift away from expensive and vulnerable cloud-based solutions.
+Open **http://127.0.0.1:8000** in your browser.
 
-We are seeking seed funding to finalize enclosure design for mass production, scale our software development team, and establish pilot programs with commercial vertical farms and research institutions.
+### Docker
 
-**Join us in cultivating the future of agriculture.**
+```bash
+docker-compose up --build
+```
 
----
-For inquiries, please contact:infinitycollaborations@gmail.com
+### Kubernetes
+
+```bash
+kubectl apply -k k8s/
+```
+
+## Pages
+
+| Page     | Description                                      |
+| -------- | ------------------------------------------------ |
+| Dashboard| Farm selector, stats, field status, quick actions |
+| Fields   | Field list/detail, crop cycles, soil & activity   |
+| Soil     | Soil readings, NPK analysis, reading history      |
+| Plants   | Plant health, disease risk, pest pressure         |
+| Tasks    | Task management with priority, status, filtering  |
+| Irrigation| Irrigation & fertilization logging and scheduling |
+| Chat     | AI Architect — LLM-powered agronomy assistant     |
+| BOM      | Bill of Materials — hardware inventory & status   |
+
+## API
+
+All endpoints are prefixed with `/api/v1`.
+
+| Resource          | Endpoints                                                           |
+| ----------------- | ------------------------------------------------------------------- |
+| Farms             | `GET/POST /farms/`, `GET/PUT/DELETE /farms/{id}`                    |
+| Fields            | `GET/POST /fields/`, `GET/PUT/DELETE /fields/{id}`                  |
+| Crop Cycles       | `GET/POST /crop-cycles/`, `GET/PUT/DELETE /crop-cycles/{id}`        |
+| Soil Readings     | `GET/POST /soil-readings/`, `GET /soil-readings/latest/{field_id}` |
+| Plant Health      | `GET/POST /plant-health/`, `GET /plant-health/latest/{field_id}`    |
+| Irrigation        | `GET/POST /irrigation/`, `POST /irrigation/schedule`                |
+| Fertilization     | `GET/POST /fertilization/`                                          |
+| Harvests          | `GET/POST /harvests/`, `PUT/DELETE /harvests/{id}`                  |
+| Tasks             | `GET/POST /tasks/`, `PUT/DELETE /tasks/{id}`                        |
+| Dashboard         | `GET /dashboard/summary`, `GET /dashboard/alerts`                   |
+| Weather           | `GET /dashboard/weather/{field_id}` (Open-Meteo)                    |
+
+### WebSocket
+
+Connect to `ws://host:8000/ws`.
+
+| Action      | Description                                  |
+| ----------- | -------------------------------------------- |
+| `subscribe` | Stream real-time sensor data every 2.5s      |
+| `chat`      | Send chat messages to AI Architect           |
+| `exec_tool` | Execute actuator commands (pump, lights, etc)|
+| `get_nodes` | Request current node status snapshot         |
+
+## Configuration
+
+Set via environment variables or `.env` file:
+
+| Variable           | Default                  | Description                          |
+| ------------------ | ------------------------ | ------------------------------------ |
+| `SENSOR_MODE`      | `simulated`              | `simulated` or `real`                |
+| `DATABASE_URL`     | `sqlite:///./agripulse.db` | Database connection string          |
+| `OLLAMA_BASE_URL`  | `http://localhost:11434` | Ollama API endpoint                  |
+| `OLLAMA_MODEL`     | `llama3.1:8b`            | LLM model for AI Architect           |
+| `HOST`             | `0.0.0.0`                | Server bind address                  |
+| `PORT`             | `8000`                   | Server port                          |
+
+## Hardware BOM
+
+- 3x Raspberry Pi 5 (16GB)
+- 1x AI HAT+ Hailo-10H (26 TOPS)
+- 1x Sense HAT
+- 1x NVMe HAT + 512GB SSD
+- 3x Capacitive Soil Moisture Sensors
+- 1x Industrial pH Probe + ADS1115 ADC
+- 2x DS18B20 Temperature Sensors
+- 1x Global Shutter Camera
+- Actuators: pump, mister, solenoid valve, LED grow lights, fans, relay module
+- IP65 vented enclosure
+
+## License
+
+MIT

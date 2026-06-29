@@ -1,0 +1,18 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: agripulse-ingress
+  namespace: agripulse
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: agripulse.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: agripulse-service
+                port:
+                  number: 80

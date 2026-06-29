@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>AI Architect - AgriPulse FMIS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/style.css">
+<script src="/static/js/api.js"></script>
+<style>
+html, body { height: 100%; overflow: hidden; }
+body { display: flex; flex-direction: column; font-family: 'Inter', system-ui, sans-serif; }
+.chat-container { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.chat-messages { flex: 1; overflow-y: auto; padding: 8px 12px 4px; display: flex; flex-direction: column; gap: 4px; }
+.chat-bubble { max-width: 88%; padding: 10px 14px; border-radius: 16px; font-size: 0.875rem; line-height: 1.55; margin-bottom: 6px; word-wrap: break-word; animation: fadeInUp 0.25s ease; }
+.chat-bubble.assistant { background: var(--bg-card); border: 1px solid var(--border); border-bottom-left-radius: 4px; align-self: flex-start; }
+.chat-bubble.user { background: var(--green); color: #fff; border-bottom-right-radius: 4px; align-self: flex-end; }
+.chat-bubble pre { background: var(--bg-dark); padding: 10px 12px; border-radius: 8px; overflow-x: auto; margin: 6px 0; font-size: 0.78rem; line-height: 1.4; font-family: 'SF Mono', 'Fira Code', monospace; }
+.chat-bubble code { font-size: 0.8rem; background: rgba(0,0,0,0.3); padding: 1px 5px; border-radius: 4px; font-family: 'SF Mono', 'Fira Code', monospace; }
+.chat-bubble pre code { background: none; padding: 0; }
+.chat-bubble p { margin: 4px 0; }
+.chat-bubble ul, .chat-bubble ol { margin: 4px 0; padding-left: 20px; }
+.chat-bubble li { margin: 2px 0; }
+.chat-bubble h1, .chat-bubble h2, .chat-bubble h3, .chat-bubble h4 { margin: 8px 0 4px; font-weight: 600; }
+.chat-bubble h1 { font-size: 1.05rem; }
+.chat-bubble h2 { font-size: 0.95rem; }
+.chat-bubble h3 { font-size: 0.9rem; }
+.chat-bubble strong { color: var(--green); }
+.chat-bubble a { color: var(--info); text-decoration: underline; }
+.suggestions-row { display: flex; gap: 6px; padding: 6px 12px 2px; overflow-x: auto; flex-shrink: 0; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.suggestions-row::-webkit-scrollbar { display: none; }
+.suggestion-chip { flex-shrink: 0; padding: 6px 14px; border-radius: 16px; font-size: 0.75rem; background: var(--bg-light); border: 1px solid var(--border); color: var(--text-muted); white-space: nowrap; cursor: pointer; transition: all 0.2s; -webkit-tap-highlight-color: transparent; }
+.suggestion-chip:active { background: var(--green); color: #fff; border-color: var(--green); }
+.chat-input-bar { display: flex; gap: 8px; align-items: flex-end; padding: 8px 12px 12px; background: var(--bg-med); border-top: 1px solid var(--border); flex-shrink: 0; padding-bottom: calc(12px + env(safe-area-inset-bottom, 0)); }
+.chat-input-bar textarea { flex: 1; background: var(--bg-light); border: 1px solid var(--border); border-radius: 12px; padding: 10px 14px; color: var(--text); font-size: 0.875rem; resize: none; max-height: 120px; min-height: 42px; line-height: 1.4; outline: none; transition: border-color 0.2s; }
+.chat-input-bar textarea:focus { border-color: var(--green); }
+.chat-input-bar textarea::placeholder { color: var(--text-dim); }
+.chat-input-bar .send-btn { width: 42px; height: 42px; border-radius: 50%; background: var(--green); color: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s; -webkit-tap-highlight-color: transparent; }
+.chat-input-bar .send-btn:active { transform: scale(0.92); background: var(--green-dark); }
+.chat-input-bar .send-btn:disabled { opacity: 0.4; pointer-events: none; }
+.tool-confirm-bar { background: var(--bg-card); border: 1px solid var(--warning); border-radius: 12px; margin: 4px 12px 0; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-shrink: 0; animation: fadeInUp 0.25s ease; }
+.tool-confirm-bar .tool-action { font-size: 0.8rem; color: var(--text); flex: 1; }
+.tool-confirm-bar .tool-action code { font-size: 0.75rem; background: rgba(0,0,0,0.3); padding: 1px 5px; border-radius: 4px; }
+.tool-confirm-bar .tool-btns { display: flex; gap: 6px; flex-shrink: 0; }
+.tool-confirm-bar .tool-btns button { padding: 5px 14px; border-radius: 8px; font-size: 0.75rem; font-weight: 600; transition: all 0.15s; }
+.tool-confirm-bar .tool-btns .allow-btn { background: var(--green); color: #fff; }
+.tool-confirm-bar .tool-btns .deny-btn { background: var(--bg-light); color: var(--text-muted); border: 1px solid var(--border); }
+.loading-dots { display: flex; gap: 4px; align-items: center; padding: 4px 0; }
+.loading-dots span { width: 7px; height: 7px; border-radius: 50%; background: var(--text-muted); animation: dotPulse 1.4s ease-in-out infinite; }
+.loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+.loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes fadeInUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes dotPulse { 0%,80%,100% { opacity: 0.3; } 40% { opacity: 1; } }
+</style>
+</head>
+<body>
+<div class="app-header">
+  <a href="/" class="back-btn" aria-label="Back">&#x2190;</a>
+  <h1>AI Architect</h1>
+</div>
+
+<div class="chat-container" id="chat-container">
+  <div class="chat-messages" id="chat-messages"></div>
+
+  <div id="tool-confirm-area"></div>
+
+  <div class="suggestions-row" id="suggestions-row"></div>
+
+  <div class="chat-input-bar">
+    <textarea id="chat-input" rows="1" placeholder="Ask the AI Architect about your farm..." aria-label="Chat message"></textarea>
+    <button class="send-btn" id="send-btn" aria-label="Send message">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+    </button>
+  </div>
+</div>
+
+<nav class="bottom-nav">
+  <a href="/"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg><span>Dashboard</span></a>
+  <a href="/fields.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 22L12 2l10 20H2z"/><path d="M7 14h10"/></svg><span>Fields</span></a>
+  <a href="/soil.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a8 8 0 0 0-8 8c0 5 8 12 8 12s8-7 8-12a8 8 0 0 0-8-8z"/><circle cx="12" cy="10" r="3"/></svg><span>Soil</span></a>
+  <a href="/plants.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22V8"/><path d="M12 8c-2-2-6-2-8-2 0 4 2 6 8 6"/><path d="M12 8c2-2 6-2 8-2 0 4-2 6-8 6"/></svg><span>Plants</span></a>
+  <a href="/tasks.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><span>Tasks</span></a>
+  <a href="/chat.html" class="active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>Chat</span></a>
+</nav>
+
+<script>
+const $ = id => document.getElementById(id);
+const chatMessages = $('chat-messages');
+const chatInput = $('chat-input');
+const sendBtn = $('send-btn');
+const suggestionsRow = $('suggestions-row');
+const toolConfirmArea = $('tool-confirm-area');
+
+let messages = [];
+let history = [];
+let isLoading = false;
+
+const MAX_HISTORY = 50;
+const SUGGESTIONS = [
+  'Check soil health',
+  'Irrigation schedule advice',
+  'Explain the ADS1115 role',
+  'How to calibrate sensors?',
+  'Enable permaculture mode',
+  'Toggle camera feed',
+  'Load YOLOv8 model',
+];
+
+function escapeHtml(str) {
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+function renderMarkdown(text) {
+  if (!text) return '';
+  let html = escapeHtml(text);
+  html = html.replace(/```(\w*)\n?([\s\S]*?)```/g, (_, lang, code) => {
+    return '<pre><code>' + escapeHtml(code.replace(/^\n/, '').replace(/\n$/, '')) + '</code></pre>';
+  });
+  html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+  html = html.replace(/### (.+)/g, '<h4>$1</h4>');
+  html = html.replace(/## (.+)/g, '<h3>$1</h3>');
+  html = html.replace(/# (.+)/g, '<h2>$1</h2>');
+  html = html.replace(/^- (.+)/gm, '<li>$1</li>');
+  if (html.includes('<li>')) {
+    html = html.replace(/(?:<li>.*<\/li>\n?)+/g, '<ul>$&</ul>');
+  }
+  html = html.replace(/\n\n/g, '</p><p>');
+  html = '<p>' + html + '</p>';
+  html = html.replace(/<p><\/p>/g, '');
+  html = html.replace(/<p>(<[uo]l>)/g, '$1');
+  html = html.replace(/(<\/[uo]l>)<\/p>/g, '$1');
+  return html;
+}
+
+function renderSuggestions() {
+  suggestionsRow.innerHTML = SUGGESTIONS.map(s =>
+    '<button class="suggestion-chip" data-suggestion="' + s.replace(/"/g, '&quot;') + '">' + escapeHtml(s) + '</button>'
+  ).join('');
+  suggestionsRow.querySelectorAll('.suggestion-chip').forEach(btn => {
+    btn.addEventListener('click', () => sendMessage(btn.dataset.suggestion));
+  });
+}
+
+function scrollToBottom() {
+  requestAnimationFrame(() => { chatMessages.scrollTop = chatMessages.scrollHeight; });
+}
+
+function createBubble(msg) {
+  const div = document.createElement('div');
+  div.className = 'chat-bubble ' + msg.role;
+  if (msg.role === 'user') {
+    div.textContent = msg.content;
+  } else if (msg._loading) {
+    div.innerHTML = '<div class="loading-dots"><span></span><span></span><span></span></div>';
+  } else {
+    div.innerHTML = renderMarkdown(msg.content);
+  }
+  return div;
+}
+
+function addMessage(role, content, opts) {
+  opts = opts || {};
+  const msg = { role: role, content: content, timestamp: Date.now() };
+  for (var k in opts) msg[k] = opts[k];
+  messages.push(msg);
+  chatMessages.appendChild(createBubble(msg));
+  scrollToBottom();
+  updateSendBtn();
+  return msg;
+}
+
+function replaceLastAssistant(content) {
+  for (var i = messages.length - 1; i >= 0; i--) {
+    if (messages[i].role === 'assistant') {
+      messages.splice(i, 1);
+      break;
+    }
+  }
+  chatMessages.innerHTML = '';
+  messages.forEach(function(m) { chatMessages.appendChild(createBubble(m)); });
+  var newMsg = addMessage('assistant', content);
+  scrollToBottom();
+  return newMsg;
+}
+
+function updateSendBtn() {
+  sendBtn.disabled = isLoading || !chatInput.value.trim();
+}
+
+function sendMessage(text) {
+  text = (text || chatInput.value).trim();
+  if (!text || isLoading) return;
+  chatInput.value = '';
+  chatInput.style.height = 'auto';
+  isLoading = true;
+  updateSendBtn();
+
+  addMessage('user', text);
+  history.push({ role: 'user', content: text });
+
+  addMessage('assistant', '', { _loading: true });
+
+  ws.chat(history.slice(-MAX_HISTORY));
+}
+
+function showToolConfirm(data) {
+  var fn = data.functionCalls && data.functionCalls[0] ? data.functionCalls[0] : data;
+  var name = fn.name || fn.function && fn.function.name || 'unknown';
+  var args = fn.args || fn.function && fn.function.arguments || {};
+  var argsStr = typeof args === 'object' ? JSON.stringify(args) : String(args);
+  toolConfirmArea.innerHTML =
+    '<div class="tool-confirm-bar">' +
+      '<div class="tool-action">AI wants to: <code>' + escapeHtml(name) + '(' + escapeHtml(argsStr) + ')</code></div>' +
+      '<div class="tool-btns">' +
+        '<button class="allow-btn" id="tool-allow">Allow</button>' +
+        '<button class="deny-btn" id="tool-deny">Deny</button>' +
+      '</div>' +
+    '</div>';
+  $('tool-allow').addEventListener('click', function() {
+    toolConfirmArea.innerHTML = '';
+    isLoading = true;
+    updateSendBtn();
+    ws.execTool(name, args);
+    history.push({ role: 'user', content: '[System: Tool "' + name + '" was approved and executed]' });
+    ws.chat(history.slice(-MAX_HISTORY));
+  });
+  $('tool-deny').addEventListener('click', function() {
+    toolConfirmArea.innerHTML = '';
+    history.push({ role: 'user', content: '[System: Tool "' + name + '" was denied by user]' });
+    ws.chat(history.slice(-MAX_HISTORY));
+  });
+}
+
+function handleChatResponse(data) {
+  isLoading = false;
+  updateSendBtn();
+
+  var content = data.text || data.response || data.message || '';
+
+  if (data.functionCalls && data.functionCalls.length > 0) {
+    showToolConfirm(data);
+  }
+
+  if (content) {
+    replaceLastAssistant(content);
+    history.push({ role: 'assistant', content: content });
+  } else if (!data.functionCalls) {
+    replaceLastAssistant('I received your message but have no response. Please try again.');
+    history.push({ role: 'assistant', content: 'No response' });
+  }
+
+  if (history.length > MAX_HISTORY * 2) {
+    history = history.slice(-MAX_HISTORY);
+  }
+}
+
+chatInput.addEventListener('input', function() {
+  chatInput.style.height = 'auto';
+  chatInput.style.height = Math.min(chatInput.scrollHeight, 120) + 'px';
+  updateSendBtn();
+});
+
+chatInput.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+});
+
+sendBtn.addEventListener('click', function() { sendMessage(); });
+
+ws.on('chat_response', handleChatResponse);
+
+ws.on('connected', function() {
+  if (messages.length === 0) {
+    addMessage('assistant', 'Welcome to **AgriPulse AI Architect**. I can help you manage sensors, analyze soil and plant data, control actuators, and optimize your farm operations. Try a suggestion below or ask me anything about your edge cluster.');
+  }
+});
+
+renderSuggestions();
+updateSendBtn();
+
+if (ws.ws && ws.ws.readyState === WebSocket.OPEN) {
+  addMessage('assistant', 'Welcome to **AgriPulse AI Architect**. I can help you manage sensors, analyze soil and plant data, control actuators, and optimize your farm operations. Try a suggestion below or ask me anything about your edge cluster.');
+}
+</script>
+</body>
+</html>

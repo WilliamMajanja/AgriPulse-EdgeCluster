@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Tasks - AgriPulse FMIS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="/static/css/style.css">
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        'agri-dark': '#0D1117',
+        'agri-med': '#161B22',
+        'agri-light': '#21262D',
+        'agri-green': '#28A745',
+        'agri-text': '#C9D1D9',
+        'agri-text-muted': '#8B949E',
+        'agri-border': '#30363D',
+      },
+      fontFamily: {
+        sans: ['Inter', 'system-ui', 'sans-serif'],
+      },
+    },
+  },
+}
+</script>
+<style>
+.task-card { cursor: pointer; }
+.task-card:active { border-color: var(--green); }
+.task-card .title { font-size: 0.95rem; font-weight: 600; margin-bottom: 4px; }
+.task-card .desc { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 8px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.task-card .meta { font-size: 0.75rem; color: var(--text-muted); display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.task-card .meta span { display: inline-flex; align-items: center; gap: 4px; }
+.complete-btn {
+  width: 32px; height: 32px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  border: 2px solid var(--text-dim);
+  color: transparent;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+.complete-btn:hover { border-color: var(--green); color: var(--green); }
+.complete-btn.done { border-color: var(--green); background: var(--green); color: white; }
+.fab {
+  position: fixed; bottom: calc(var(--nav-height) + 16px); right: 16px;
+  width: 56px; height: 56px; border-radius: 50%;
+  background: var(--green); color: white;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.5rem; font-weight: 700;
+  box-shadow: 0 4px 16px rgba(40,167,69,0.4);
+  z-index: 90;
+  transition: all 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
+.fab:active { transform: scale(0.92); box-shadow: 0 2px 8px rgba(40,167,69,0.3); }
+.filter-tabs {
+  display: flex; gap: 8px; overflow-x: auto;
+  padding: 8px 0 12px; margin-bottom: 4px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.filter-tabs::-webkit-scrollbar { display: none; }
+.filter-tab {
+  flex-shrink: 0;
+  padding: 6px 16px; border-radius: 16px;
+  font-size: 0.8rem; font-weight: 500;
+  background: var(--bg-light); color: var(--text-muted);
+  border: 1px solid transparent;
+  transition: all 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
+.filter-tab.active { background: rgba(40,167,69,0.15); color: var(--green); border-color: var(--green); }
+.filter-tab:active { transform: scale(0.96); }
+.hidden { display: none !important; }
+</style>
+</head>
+<body>
+  <header class="app-header">
+    <h1>Tasks</h1>
+    <button onclick="openAddOverlay()" aria-label="Add task" style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:var(--bg-light);color:var(--green);font-size:1.3rem;font-weight:700;">+</button>
+  </header>
+
+  <nav class="bottom-nav">
+    <a href="/index.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      <span>Dashboard</span>
+    </a>
+    <a href="/fields.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 22V2h8v20"/><path d="M10 22V10h8v12"/><path d="M18 22V6h4v16"/></svg>
+      <span>Fields</span>
+    </a>
+    <a href="/soil.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/><path d="M8 12h8"/><path d="M12 8v8"/></svg>
+      <span>Soil</span>
+    </a>
+    <a href="/plants.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.9C15.5 4.9 17 3.5 19 2c1 2 2 4.5 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg>
+      <span>Plants</span>
+    </a>
+    <a href="/tasks.html" class="active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      <span>Tasks</span>
+    </a>
+    <a href="/chat.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      <span>Chat</span>
+    </a>
+  </nav>
+
+  <main class="main-content" id="main-content">
+    <div class="filter-tabs" id="filterTabs">
+      <button class="filter-tab active" data-filter="all">All</button>
+      <button class="filter-tab" data-filter="pending">Pending</button>
+      <button class="filter-tab" data-filter="in_progress">In Progress</button>
+      <button class="filter-tab" data-filter="completed">Completed</button>
+    </div>
+
+    <div id="taskList"></div>
+  </main>
+
+  <button class="fab" id="fab" onclick="openAddOverlay()" aria-label="Add task">+</button>
+
+  <div id="taskOverlay" class="overlay hidden">
+    <div class="overlay-header">
+      <button onclick="closeOverlay()" style="font-size:1.3rem;color:var(--text-muted);line-height:1;">&times;</button>
+      <h2 id="overlayTitle">New Task</h2>
+      <button id="deleteBtn" onclick="deleteTask()" class="btn btn-sm btn-danger" style="display:none;">Delete</button>
+    </div>
+    <div class="overlay-body">
+      <form id="taskForm" onsubmit="handleSubmit(event)">
+        <div class="form-group">
+          <label for="title">Title *</label>
+          <input type="text" id="title" class="form-input" required placeholder="e.g. Apply fertilizer">
+        </div>
+        <div class="form-group">
+          <label for="description">Description</label>
+          <textarea id="description" class="form-input" rows="3" placeholder="Task details..."></textarea>
+        </div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label for="field_id">Field</label>
+            <select id="field_id" class="form-input">
+              <option value="">-- No field --</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="priority">Priority</label>
+            <select id="priority" class="form-input">
+              <option value="low">Low</option>
+              <option value="medium" selected>Medium</option>
+              <option value="high">High</option>
+              <option value="critical">Critical</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label for="status">Status</label>
+            <select id="status" class="form-input">
+              <option value="pending">Pending</option>
+              <option value="in_progress">In Progress</option>
+              <option value="completed">Completed</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="assigned_to">Assigned To</label>
+            <input type="text" id="assigned_to" class="form-input" placeholder="Name">
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="due_date">Due Date</label>
+          <input type="datetime-local" id="due_date" class="form-input">
+        </div>
+        <button type="submit" class="btn btn-primary btn-block" id="submitBtn">Save Task</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="toast-container" class="toast-container"></div>
+
+<script src="/static/js/api.js"></script>
+<script>
+const state = {
+  tasks: [],
+  fields: [],
+  filter: 'all',
+  editingId: null,
+  loading: false,
+};
+
+const $ = id => document.getElementById(id);
+const taskList = $('taskList');
+
+const FILTER_LABELS = { all: 'All', pending: 'Pending', in_progress: 'In Progress', completed: 'Completed' };
+const PRIORITY_LABELS = { low: 'Low', medium: 'Medium', high: 'High', critical: 'Critical' };
+const PRIORITY_CHIP = { low: 'chip-blue', medium: 'chip-green', high: 'chip-yellow', critical: 'chip-red' };
+const STATUS_CHIP = { pending: 'chip-gray', in_progress: 'chip-yellow', completed: 'chip-green' };
+
+document.addEventListener('DOMContentLoaded', init);
+
+async function init() {
+  setupFilters();
+  await Promise.all([loadFields(), loadTasks()]);
+
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('action') === 'add') openAddOverlay();
+}
+
+function setupFilters() {
+  $('filterTabs').addEventListener('click', e => {
+    const tab = e.target.closest('.filter-tab');
+    if (!tab) return;
+    $('filterTabs').querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    state.filter = tab.dataset.filter;
+    loadTasks();
+  });
+}
+
+async function loadFields() {
+  try {
+    state.fields = await api.getFields() || [];
+    const sel = $('field_id');
+    const current = sel.value;
+    sel.innerHTML = '<option value="">-- No field --</option>';
+    state.fields.forEach(f => {
+      const opt = document.createElement('option');
+      opt.value = f.id;
+      opt.textContent = f.name || `Field #${f.id}`;
+      sel.appendChild(opt);
+    });
+    if (current) sel.value = current;
+  } catch (err) {
+    console.error('Failed to load fields:', err);
+  }
+}
+
+async function loadTasks() {
+  state.loading = true;
+  renderLoading();
+  try {
+    const status = state.filter === 'all' ? undefined : state.filter;
+    state.tasks = await api.getTasks(status) || [];
+    renderTasks();
+  } catch (err) {
+    renderError(err.message);
+  } finally {
+    state.loading = false;
+  }
+}
+
+function renderLoading() {
+  taskList.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;padding:60px 20px;gap:12px"><div class="spinner"></div><span class="text-muted text-sm">Loading tasks...</span></div>';
+}
+
+function renderError(msg) {
+  taskList.innerHTML = `<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:48px;height:48px;opacity:0.4;margin:0 auto 12px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><h3>Failed to load tasks</h3><p style="margin-bottom:16px;font-size:0.85rem;color:var(--text-muted)">${msg}</p><button onclick="loadTasks()" class="btn btn-secondary btn-sm">Retry</button></div>`;
+}
+
+function renderTasks() {
+  if (!state.tasks.length) {
+    taskList.innerHTML = '<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:48px;height:48px;opacity:0.4;margin:0 auto 12px"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><h3>No tasks yet</h3><p style="font-size:0.85rem">Create your first task to get started.</p></div>';
+    return;
+  }
+  taskList.innerHTML = state.tasks.map(task => renderTaskCard(task)).join('');
+}
+
+function renderTaskCard(task) {
+  const isDone = task.status === 'completed';
+  const priorityChip = PRIORITY_CHIP[task.priority] || 'chip-gray';
+  const statusChip = STATUS_CHIP[task.status] || 'chip-gray';
+  const field = state.fields.find(f => f.id === task.field_id);
+  const fieldName = field ? field.name || `Field #${field.id}` : null;
+  const dueDate = task.due_date ? fmtDate(task.due_date) : null;
+
+  return `<div class="card task-card" onclick="openEditOverlay('${task.id}')" data-id="${task.id}">
+    <div style="display:flex;align-items:flex-start;gap:12px;">
+      <div style="flex:1;min-width:0;">
+        <div class="title">${esc(task.title)}</div>
+        ${task.description ? `<div class="desc">${esc(task.description)}</div>` : ''}
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
+          <span class="chip ${priorityChip}">${PRIORITY_LABELS[task.priority] || task.priority}</span>
+          <span class="chip ${statusChip}">${FILTER_LABELS[task.status] || task.status}</span>
+        </div>
+        <div class="meta">
+          ${fieldName ? `<span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;"><path d="M2 22V2h8v20"/><path d="M10 22V10h8v12"/><path d="M18 22V6h4v16"/></svg> ${esc(fieldName)}</span>` : ''}
+          ${dueDate ? `<span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> ${dueDate}</span>` : ''}
+        </div>
+      </div>
+      <button onclick="event.stopPropagation();completeTask('${task.id}')" class="complete-btn ${isDone ? 'done' : ''}" aria-label="Complete task">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><polyline points="20 6 9 17 4 12"/></svg>
+      </button>
+    </div>
+  </div>`;
+}
+
+async function completeTask(id) {
+  try {
+    await api.updateTask(id, { status: 'completed' });
+    showToast('Task completed', 'success');
+    await loadTasks();
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+}
+
+function openAddOverlay() {
+  state.editingId = null;
+  $('overlayTitle').textContent = 'New Task';
+  $('submitBtn').textContent = 'Create Task';
+  $('deleteBtn').style.display = 'none';
+  $('taskForm').reset();
+  $('priority').value = 'medium';
+  $('status').value = 'pending';
+  $('taskOverlay').classList.remove('hidden');
+}
+
+async function openEditOverlay(id) {
+  const task = state.tasks.find(t => String(t.id) === String(id));
+  if (!task) return;
+  state.editingId = task.id;
+  $('overlayTitle').textContent = 'Edit Task';
+  $('submitBtn').textContent = 'Update Task';
+  $('deleteBtn').style.display = '';
+  $('title').value = task.title || '';
+  $('description').value = task.description || '';
+  $('field_id').value = task.field_id || '';
+  $('priority').value = task.priority || 'medium';
+  $('status').value = task.status || 'pending';
+  $('assigned_to').value = task.assigned_to || '';
+  $('due_date').value = task.due_date ? toDatetimeLocal(task.due_date) : '';
+  $('taskOverlay').classList.remove('hidden');
+}
+
+function closeOverlay() {
+  $('taskOverlay').classList.add('hidden');
+  state.editingId = null;
+}
+
+async function handleSubmit(e) {
+  e.preventDefault();
+  const data = {
+    title: $('title').value.trim(),
+    description: $('description').value.trim(),
+    field_id: $('field_id').value || null,
+    priority: $('priority').value,
+    status: $('status').value,
+    assigned_to: $('assigned_to').value.trim() || null,
+    due_date: $('due_date').value ? new Date($('due_date').value).toISOString() : null,
+  };
+  if (!data.title) { showToast('Title is required', 'error'); return; }
+
+  const btn = $('submitBtn');
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+  try {
+    if (state.editingId) {
+      await api.updateTask(state.editingId, data);
+      showToast('Task updated', 'success');
+    } else {
+      await api.createTask(data);
+      showToast('Task created', 'success');
+    }
+    closeOverlay();
+    await loadTasks();
+  } catch (err) {
+    showToast(err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = state.editingId ? 'Update Task' : 'Create Task';
+  }
+}
+
+async function deleteTask() {
+  if (!state.editingId) return;
+  if (!confirm('Delete this task? This cannot be undone.')) return;
+  try {
+    await api.deleteTask(state.editingId);
+    showToast('Task deleted', 'success');
+    closeOverlay();
+    await loadTasks();
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+}
+
+function esc(s) {
+  if (!s) return '';
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+function toDatetimeLocal(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  const pad = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: agripulse-service
+  namespace: agripulse
+spec:
+  type: ClusterIP
+  selector:
+    app: agripulse-backend
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ollama-service
+  namespace: agripulse
+spec:
+  type: ClusterIP
+  selector:
+    app: ollama
+  ports:
+    - protocol: TCP
+      port: 11434
+      targetPort: 11434

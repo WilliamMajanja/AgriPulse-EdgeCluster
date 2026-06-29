@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Fields & Crops - AgriPulse FMIS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="/static/css/style.css">
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        'agri-dark': '#0D1117',
+        'agri-med': '#161B22',
+        'agri-light': '#21262D',
+        'agri-green': '#28A745',
+        'agri-text': '#C9D1D9',
+        'agri-text-muted': '#8B949E',
+        'agri-border': '#30363D',
+      },
+      fontFamily: {
+        sans: ['Inter', 'system-ui', 'sans-serif'],
+      },
+    },
+  },
+}
+</script>
+<style>
+  .tab-btn { color: var(--text-muted); padding: 10px 16px; font-size: 0.85rem; font-weight: 600; border-bottom: 2px solid transparent; transition: all 0.2s; }
+  .tab-btn.active { color: var(--green); border-bottom-color: var(--green); }
+  .tab-btn:active { opacity: 0.7; }
+  .moisture-bar { height: 6px; border-radius: 3px; background: var(--bg-light); overflow: hidden; }
+  .moisture-bar .fill { height: 100%; border-radius: 3px; transition: width 0.4s ease; }
+  @keyframes fadeInUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+  .fade-in-up { animation: fadeInUp 0.3s ease; }
+</style>
+</head>
+<body class="bg-agri-dark text-agri-text font-sans antialiased min-h-screen">
+
+<div id="toast-container" class="fixed top-4 right-4 z-[100] flex flex-col gap-2 w-80"></div>
+
+<header id="app-header" class="app-header">
+  <button id="back-btn" class="back-btn hidden" onclick="page.goBack()" aria-label="Back">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+  </button>
+  <h1 id="page-title">Fields & Crops</h1>
+  <button id="add-btn" class="btn btn-primary btn-sm hidden" onclick="page.openOverlay('add-field')">+</button>
+</header>
+
+<main id="main-content" class="main-content"></main>
+
+<nav class="bottom-nav">
+  <a href="/index.html" data-nav="dashboard">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+    <span>Dashboard</span>
+  </a>
+  <a href="/fields.html" data-nav="fields" class="active">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 22L12 2l10 20H2z"/><path d="M7 22l5-8 5 8H7z"/></svg>
+    <span>Fields</span>
+  </a>
+  <a href="/soil.html" data-nav="soil">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
+    <span>Soil</span>
+  </a>
+  <a href="/plants.html" data-nav="plants">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.9C15.5 4.9 17 3.5 19 2c1 2 2 4.5 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg>
+    <span>Plants</span>
+  </a>
+  <a href="/tasks.html" data-nav="tasks">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+    <span>Tasks</span>
+  </a>
+  <a href="/chat.html" data-nav="chat">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+    <span>Chat</span>
+  </a>
+</nav>
+
+<div id="add-field-overlay" class="overlay hidden">
+  <div class="overlay-header">
+    <button onclick="page.closeOverlay('add-field')" class="back-btn" aria-label="Close">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <h2>Add Field</h2>
+  </div>
+  <div class="overlay-body">
+    <form id="add-field-form" onsubmit="page.handleAddField(event)">
+      <div class="form-group">
+        <label for="af-farm">Farm</label>
+        <select id="af-farm" class="form-input" required>
+          <option value="">Select farm...</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="af-name">Field Name</label>
+        <input type="text" id="af-name" class="form-input" placeholder="North Field" required>
+      </div>
+      <div class="form-group">
+        <label for="af-area">Area (hectares)</label>
+        <input type="number" id="af-area" class="form-input" step="0.1" min="0.1" placeholder="10.5" required>
+      </div>
+      <div class="form-group">
+        <label for="af-soil">Soil Type</label>
+        <select id="af-soil" class="form-input">
+          <option value="">Select soil type...</option>
+          <option value="clay">Clay</option>
+          <option value="loam">Loam</option>
+          <option value="sandy">Sandy</option>
+          <option value="silt">Silt</option>
+          <option value="peat">Peat</option>
+          <option value="chalk">Chalk</option>
+          <option value="clay_loam">Clay Loam</option>
+        </select>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block mt-8">Create Field</button>
+    </form>
+  </div>
+</div>
+
+<div id="add-crop-overlay" class="overlay hidden">
+  <div class="overlay-header">
+    <button onclick="page.closeOverlay('add-crop')" class="back-btn" aria-label="Close">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <h2>Add Crop Cycle</h2>
+  </div>
+  <div class="overlay-body">
+    <form id="add-crop-form" onsubmit="page.handleAddCrop(event)">
+      <div class="form-group">
+        <label for="ac-crop">Crop Type</label>
+        <input type="text" id="ac-crop" class="form-input" placeholder="Corn" required>
+      </div>
+      <div class="form-group">
+        <label for="ac-variety">Variety</label>
+        <input type="text" id="ac-variety" class="form-input" placeholder="DKC 62-08">
+      </div>
+      <div class="form-group">
+        <label for="ac-planting">Planting Date</label>
+        <input type="date" id="ac-planting" class="form-input">
+      </div>
+      <div class="form-group">
+        <label for="ac-harvest">Expected Harvest Date</label>
+        <input type="date" id="ac-harvest" class="form-input">
+      </div>
+      <div class="form-group">
+        <label for="ac-status">Status</label>
+        <select id="ac-status" class="form-input">
+          <option value="planned">Planned</option>
+          <option value="planted">Planted</option>
+          <option value="growing">Growing</option>
+          <option value="harvested">Harvested</option>
+          <option value="failed">Failed</option>
+        </select>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block mt-8">Create Crop Cycle</button>
+    </form>
+  </div>
+</div>
+
+<div id="add-soil-overlay" class="overlay hidden">
+  <div class="overlay-header">
+    <button onclick="page.closeOverlay('add-soil')" class="back-btn" aria-label="Close">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <h2>Add Soil Reading</h2>
+  </div>
+  <div class="overlay-body">
+    <form id="add-soil-form" onsubmit="page.handleAddSoil(event)">
+      <div class="grid-2">
+        <div class="form-group">
+          <label for="as-temp">Temperature (°C)</label>
+          <input type="number" id="as-temp" class="form-input" step="0.1" placeholder="24.5">
+        </div>
+        <div class="form-group">
+          <label for="as-moisture">Moisture (%)</label>
+          <input type="number" id="as-moisture" class="form-input" step="0.1" min="0" max="100" placeholder="65.0">
+        </div>
+        <div class="form-group">
+          <label for="as-ph">pH</label>
+          <input type="number" id="as-ph" class="form-input" step="0.1" min="0" max="14" placeholder="7.0">
+        </div>
+        <div class="form-group">
+          <label for="as-n">Nitrogen (ppm)</label>
+          <input type="number" id="as-n" class="form-input" step="1" placeholder="100">
+        </div>
+        <div class="form-group">
+          <label for="as-p">Phosphorus (ppm)</label>
+          <input type="number" id="as-p" class="form-input" step="1" placeholder="50">
+        </div>
+        <div class="form-group">
+          <label for="as-k">Potassium (ppm)</label>
+          <input type="number" id="as-k" class="form-input" step="1" placeholder="120">
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block">Add Reading</button>
+    </form>
+  </div>
+</div>
+
+<script src="/static/js/api.js"></script>
+<script>
+const page = {
+  state: {
+    farms: [],
+    fields: [],
+    selectedFarmId: null,
+    fieldId: null,
+    currentField: null,
+    cropCycles: [],
+    soilReadings: [],
+    latestSoil: null,
+    latestPlant: null,
+    irrigationEvents: [],
+    fertilizationEvents: [],
+    harvests: [],
+    activeTab: 'crops',
+  },
+
+  async init() {
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get('id');
+    if (id) {
+      this.state.fieldId = parseInt(id);
+      await this.loadDetail(this.state.fieldId);
+    } else {
+      await this.loadList();
+    }
+  },
+
+  goBack() {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('id')) {
+      window.history.pushState({}, '', '/fields.html');
+      this.loadList();
+    }
+  },
+
+  // ─── List View ───
+
+  async loadList() {
+    const main = document.getElementById('main-content');
+    main.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;padding:40px;gap:12px"><div class="spinner"></div><span class="text-muted text-sm">Loading...</span></div>';
+
+    try {
+      const [farms, fields] = await Promise.all([
+        api.getFarms(),
+        api.getFields(this.state.selectedFarmId || undefined),
+      ]);
+      this.state.farms = farms || [];
+      this.state.fields = fields || [];
+
+      const cropPromises = this.state.fields.map(f =>
+        api.getCropCycles(f.id).catch(() => [])
+      );
+      const soilPromises = this.state.fields.map(f =>
+        api.getLatestSoilReading(f.id).catch(() => null)
+      );
+      const plantPromises = this.state.fields.map(f =>
+        api.getLatestPlantHealth(f.id).catch(() => null)
+      );
+
+      const [cropResults, soilResults, plantResults] = await Promise.all([
+        Promise.all(cropPromises),
+        Promise.all(soilPromises),
+        Promise.all(plantPromises),
+      ]);
+
+      const cropMap = {};
+      const soilMap = {};
+      const plantMap = {};
+      this.state.fields.forEach((f, i) => {
+        const cycles = cropResults[i] || [];
+        cropMap[f.id] = cycles.length > 0 ? cycles[0] : null;
+        soilMap[f.id] = soilResults[i];
+        plantMap[f.id] = plantResults[i];
+      });
+
+      this.renderList(cropMap, soilMap, plantMap);
+    } catch (e) {
+      main.innerHTML = `<div class="empty-state"><h3>Failed to load fields</h3><p class="text-sm mt-2">${e.message}</p><button onclick="page.loadList()" class="btn btn-secondary btn-sm mt-12">Retry</button></div>`;
+    }
+  },
+
+  renderList(cropMap, soilMap, plantMap) {
+    const header = document.getElementById('app-header');
+    header.innerHTML = `
+      <button id="back-btn" class="back-btn hidden" onclick="page.goBack()" aria-label="Back" style="display:none">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <h1 id="page-title">Fields & Crops</h1>
+      <button id="add-btn" class="btn btn-primary btn-sm" onclick="page.openOverlay('add-field')">+</button>`;
+
+    const main = document.getElementById('main-content');
+
+    let farmFilter = '';
+    if (this.state.farms.length > 0) {
+      farmFilter = `<div class="flex items-center gap-3 mb-4">
+        <label class="text-sm text-muted">Farm:</label>
+        <select id="farm-selector" onchange="page.filterByFarm(this.value)" class="form-input" style="max-width:200px">
+          <option value="">All Farms</option>
+          ${this.state.farms.map(f => `<option value="${f.id}"${this.state.selectedFarmId === f.id ? ' selected' : ''}>${f.name}</option>`).join('')}
+        </select>
+      </div>`;
+    }
+
+    if (this.state.fields.length === 0) {
+      main.innerHTML = `
+        ${farmFilter}
+        <div class="empty-state">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="mx-auto" width="48" height="48"><path d="M2 22L12 2l10 20H2z"/><path d="M7 22l5-8 5 8H7z"/></svg>
+          <h3>No fields yet</h3>
+          <p>Add your first field to get started</p>
+          <button onclick="page.openOverlay('add-field')" class="btn btn-primary btn-sm mt-12">+ Add Field</button>
+        </div>`;
+      return;
+    }
+
+    const cardsHtml = this.state.fields.map(f => {
+      const crop = cropMap[f.id];
+      const soil = soilMap[f.id];
+      const plant = plantMap[f.id];
+
+      const moistColor = soil?.moisture_pct != null
+        ? (soil.moisture_pct < 30 ? '#DA3633' : soil.moisture_pct > 80 ? '#D29922' : '#28A745')
+        : '#28A745';
+      const healthStatus = plant?.disease_risk != null
+        ? (plant.disease_risk > 0.5 ? 'warning' : 'healthy')
+        : null;
+
+      return `<div class="card cursor-pointer fade-in-up" onclick="page.openDetail(${f.id})">
+        <div class="flex items-center justify-between mb-2">
+          <div class="field-name">${f.name}</div>
+          <span class="text-sm text-muted">${f.area_hectares} ha</span>
+        </div>
+        <div class="field-meta mb-2">
+          <span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 22L12 2l10 20H2z"/></svg>
+            ${crop ? crop.crop_type : 'No crop'}
+          </span>
+          ${crop ? `<span class="chip ${statusClass(crop.status)}">${crop.status}</span>` : ''}
+        </div>
+        <div class="grid-2 mt-2">
+          <div class="sensor-item">
+            <div class="sensor-label">Soil Moisture</div>
+            <div class="sensor-value" style="font-size:1rem">${soil ? fmtNum(soil.moisture_pct) + '%' : '—'}</div>
+            ${soil ? `<div class="moisture-bar mt-1"><div class="fill" style="width:${Math.min(soil.moisture_pct, 100)}%;background:${moistColor}"></div></div>` : ''}
+          </div>
+          <div class="sensor-item">
+            <div class="sensor-label">Plant Health</div>
+            <div class="sensor-value" style="font-size:1rem">${healthStatus ? healthStatus.charAt(0).toUpperCase() + healthStatus.slice(1) : '—'}</div>
+            ${healthStatus ? `<span class="status-dot ${healthStatus === 'healthy' ? 'online' : 'warning'}" style="margin:4px auto 0"></span>` : ''}
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+
+    main.innerHTML = `
+      ${farmFilter}
+      <div class="fields-list">${cardsHtml}</div>`;
+  },
+
+  filterByFarm(farmId) {
+    this.state.selectedFarmId = farmId ? parseInt(farmId) : null;
+    this.loadList();
+  },
+
+  openDetail(id) {
+    window.location.href = '/fields.html?id=' + id;
+  },
+
+  // ─── Detail View ───
+
+  async loadDetail(fieldId) {
+    const main = document.getElementById('main-content');
+    main.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;padding:40px;gap:12px"><div class="spinner"></div><span class="text-muted text-sm">Loading...</span></div>';
+
+    try {
+      const [field, farms, cycles, soilReadings, latestSoil, latestPlant, irrigation, fertilization, harvests] = await Promise.all([
+        api.getField(fieldId),
+        api.getFarms(),
+        api.getCropCycles(fieldId),
+        api.getSoilReadings(fieldId),
+        api.getLatestSoilReading(fieldId).catch(() => null),
+        api.getLatestPlantHealth(fieldId).catch(() => null),
+        api.getIrrigation(fieldId),
+        api.getFertilization(fieldId),
+        api.getHarvests(fieldId),
+      ]);
+
+      this.state.currentField = field;
+      this.state.farms = farms || [];
+      this.state.cropCycles = cycles || [];
+      this.state.soilReadings = soilReadings || [];
+      this.state.latestSoil = latestSoil;
+      this.state.latestPlant = latestPlant;
+      this.state.irrigationEvents = irrigation || [];
+      this.state.fertilizationEvents = fertilization || [];
+      this.state.harvests = harvests || [];
+
+      this.renderDetail();
+    } catch (e) {
+      main.innerHTML = `<div class="empty-state"><h3>Failed to load field</h3><p class="text-sm mt-2">${e.message}</p><button onclick="page.loadDetail(${fieldId})" class="btn btn-secondary btn-sm mt-12">Retry</button></div>`;
+    }
+  },
+
+  renderDetail() {
+    const f = this.state.currentField;
+    if (!f) return;
+
+    const header = document.getElementById('app-header');
+    header.innerHTML = `
+      <button id="back-btn" class="back-btn" onclick="page.goBack()" aria-label="Back">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <h1 id="page-title">${f.name}</h1>
+      <div style="width:36px"></div>`;
+
+    const farmName = this.state.farms.find(fa => fa.id === f.farm_id)?.name || '';
+
+    const main = document.getElementById('main-content');
+    main.innerHTML = `
+      <div class="card mb-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="text-sm font-semibold">${f.name}</div>
+            <div class="text-xs text-muted mt-1">${farmName} &middot; ${f.area_hectares} ha &middot; ${f.soil_type || 'Soil not set'}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex border-b border-agri-border mb-4" id="tab-bar">
+        <button class="tab-btn active" data-tab="crops" onclick="page.switchTab('crops')">Crops</button>
+        <button class="tab-btn" data-tab="soil" onclick="page.switchTab('soil')">Soil</button>
+        <button class="tab-btn" data-tab="activity" onclick="page.switchTab('activity')">Activity</button>
+      </div>
+
+      <div id="tab-content">
+        ${this.renderCropsTab()}
+      </div>`;
+  },
+
+  switchTab(tab) {
+    this.state.activeTab = tab;
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.tab === tab);
+    });
+    const container = document.getElementById('tab-content');
+    if (tab === 'crops') container.innerHTML = this.renderCropsTab();
+    else if (tab === 'soil') container.innerHTML = this.renderSoilTab();
+    else if (tab === 'activity') container.innerHTML = this.renderActivityTab();
+  },
+
+  renderCropsTab() {
+    const cycles = this.state.cropCycles;
+    const harvests = this.state.harvests;
+
+    let html = `<div class="flex items-center justify-between mb-4">
+      <span class="section-title" style="margin:0">Crop Cycles</span>
+      <button onclick="page.openOverlay('add-crop')" class="btn btn-primary btn-sm">+ Add Cycle</button>
+    </div>`;
+
+    if (cycles.length === 0) {
+      html += `<div class="empty-state" style="padding:24px">
+        <h3>No crop cycles</h3>
+        <p>Add a crop cycle for this field</p>
+      </div>`;
+    } else {
+      html += cycles.map(c => `
+        <div class="card">
+          <div class="flex items-center justify-between mb-2">
+            <div class="font-semibold text-sm">${c.crop_type}${c.variety ? ' (' + c.variety + ')' : ''}</div>
+            <span class="chip ${statusClass(c.status)}">${c.status}</span>
+          </div>
+          <div class="data-row">
+            <span class="label">Planted</span>
+            <span class="value">${fmtDate(c.planting_date)}</span>
+          </div>
+          <div class="data-row">
+            <span class="label">Expected Harvest</span>
+            <span class="value">${fmtDate(c.expected_harvest_date)}</span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    if (harvests.length > 0) {
+      html += `<div class="section-title mt-16">Harvest Records</div>`;
+      html += harvests.map(h => `
+        <div class="card">
+          <div class="data-row">
+            <span class="label">Date</span>
+            <span class="value">${fmtDate(h.harvest_date)}</span>
+          </div>
+          <div class="data-row">
+            <span class="label">Amount</span>
+            <span class="value">${fmtNum(h.yield_kg, 0)} kg</span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    return html;
+  },
+
+  renderSoilTab() {
+    const soil = this.state.latestSoil;
+    const readings = this.state.soilReadings;
+
+    let html = `<div class="flex items-center justify-between mb-4">
+      <span class="section-title" style="margin:0">Latest Soil Reading</span>
+      <button onclick="page.openOverlay('add-soil')" class="btn btn-primary btn-sm">+ Add Reading</button>
+    </div>`;
+
+    if (!soil) {
+      html += `<div class="empty-state" style="padding:24px">
+        <h3>No soil readings yet</h3>
+        <p>Add the first soil reading for this field</p>
+        <button onclick="page.openOverlay('add-soil')" class="btn btn-primary btn-sm mt-12">+ Add Reading</button>
+      </div>`;
+    } else {
+      const sensorData = [
+        { label: 'Temperature', value: soil.temperature_c != null ? fmtNum(soil.temperature_c) + ' °C' : '—', icon: '🌡' },
+        { label: 'Moisture', value: soil.moisture_pct != null ? fmtNum(soil.moisture_pct) + '%' : '—', icon: '💧' },
+        { label: 'pH', value: soil.ph != null ? fmtNum(soil.ph) : '—', icon: '🧪' },
+        { label: 'Nitrogen (N)', value: soil.nitrogen_ppm != null ? fmtNum(soil.nitrogen_ppm, 0) + ' ppm' : '—', icon: 'N' },
+        { label: 'Phosphorus (P)', value: soil.phosphorus_ppm != null ? fmtNum(soil.phosphorus_ppm, 0) + ' ppm' : '—', icon: 'P' },
+        { label: 'Potassium (K)', value: soil.potassium_ppm != null ? fmtNum(soil.potassium_ppm, 0) + ' ppm' : '—', icon: 'K' },
+      ];
+
+      html += `<div class="sensor-group">`;
+      sensorData.forEach(s => {
+        html += `<div class="sensor-item">
+          <div class="sensor-label">${s.label}</div>
+          <div class="sensor-value">${s.value}</div>
+        </div>`;
+      });
+      html += `</div>`;
+      html += `<div class="text-xs text-muted mt-2">Last updated: ${fmtDateTime(soil.timestamp)}</div>`;
+    }
+
+    if (readings.length > 1) {
+      html += `<div class="section-title mt-16">Reading History</div>`;
+      html += readings.slice().reverse().slice(0, 10).map(r => `
+        <div class="card" style="padding:10px">
+          <div class="flex items-center justify-between text-sm">
+            <span class="text-muted">${fmtDateTime(r.timestamp)}</span>
+            <span>${r.moisture_pct != null ? fmtNum(r.moisture_pct) + '%' : ''} ${r.temperature_c != null ? '/' + fmtNum(r.temperature_c) + '°C' : ''}</span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    return html;
+  },
+
+  renderActivityTab() {
+    const irrigation = this.state.irrigationEvents;
+    const fertilization = this.state.fertilizationEvents;
+
+    let html = `<div class="section-title">Irrigation Events</div>`;
+
+    if (irrigation.length === 0) {
+      html += `<div class="empty-state" style="padding:20px"><p>No irrigation events recorded</p></div>`;
+    } else {
+      html += irrigation.slice().reverse().slice(0, 20).map(e => `
+        <div class="card" style="padding:12px">
+          <div class="flex items-center justify-between mb-1">
+            <span class="text-sm font-semibold capitalize">${e.method || 'Irrigation'}</span>
+            <span class="chip ${statusClass('completed')}">${fmtDate(e.timestamp)}</span>
+          </div>
+          <div class="text-xs text-muted">
+            ${e.duration_minutes ? e.duration_minutes + ' min' : ''}
+            ${e.water_volume_liters ? ' &middot; ' + fmtNum(e.water_volume_liters, 0) + ' L' : ''}
+            ${e.source ? ' &middot; ' + e.source : ''}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    html += `<div class="section-title mt-12">Fertilization Events</div>`;
+
+    if (fertilization.length === 0) {
+      html += `<div class="empty-state" style="padding:20px"><p>No fertilization events recorded</p></div>`;
+    } else {
+      html += fertilization.slice().reverse().slice(0, 20).map(e => `
+        <div class="card" style="padding:12px">
+          <div class="flex items-center justify-between mb-1">
+            <span class="text-sm font-semibold">${e.nutrient_type || 'Fertilizer'}</span>
+            <span class="chip ${statusClass('completed')}">${fmtDate(e.timestamp)}</span>
+          </div>
+          <div class="text-xs text-muted">
+            ${e.amount_kg ? fmtNum(e.amount_kg, 1) + ' kg' : ''}
+            ${e.notes ? ' &middot; ' + e.notes : ''}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    return html;
+  },
+
+  // ─── Overlay Forms ───
+
+  openOverlay(name) {
+    const el = document.getElementById(name + '-overlay');
+    if (!el) return;
+    el.classList.remove('hidden');
+
+    if (name === 'add-field') {
+      const sel = document.getElementById('af-farm');
+      if (sel) {
+        sel.innerHTML = '<option value="">Select farm...</option>' +
+          this.state.farms.map(f => `<option value="${f.id}">${f.name}</option>`).join('');
+      }
+    }
+  },
+
+  closeOverlay(name) {
+    const el = document.getElementById(name + '-overlay');
+    if (el) el.classList.add('hidden');
+  },
+
+  async handleAddField(e) {
+    e.preventDefault();
+    const data = {
+      farm_id: parseInt(document.getElementById('af-farm').value),
+      name: document.getElementById('af-name').value.trim(),
+      area_hectares: parseFloat(document.getElementById('af-area').value),
+      soil_type: document.getElementById('af-soil').value || undefined,
+    };
+    if (!data.farm_id || !data.name || !data.area_hectares) {
+      showToast('Please fill in all required fields', 'error');
+      return;
+    }
+    try {
+      await api.createField(data);
+      showToast('Field created successfully', 'success');
+      this.closeOverlay('add-field');
+      document.getElementById('add-field-form').reset();
+      this.loadList();
+    } catch (e) {
+      showToast('Failed to create field: ' + e.message, 'error');
+    }
+  },
+
+  async handleAddCrop(e) {
+    e.preventDefault();
+    const fid = this.state.fieldId || this.state.currentField?.id;
+    if (!fid) return;
+    const data = {
+      field_id: fid,
+      crop_type: document.getElementById('ac-crop').value.trim(),
+      variety: document.getElementById('ac-variety').value.trim() || undefined,
+      planting_date: document.getElementById('ac-planting').value || undefined,
+      expected_harvest_date: document.getElementById('ac-harvest').value || undefined,
+      status: document.getElementById('ac-status').value || 'planned',
+    };
+    if (!data.crop_type) {
+      showToast('Crop type is required', 'error');
+      return;
+    }
+    try {
+      await api.createCropCycle(data);
+      showToast('Crop cycle created', 'success');
+      this.closeOverlay('add-crop');
+      document.getElementById('add-crop-form').reset();
+      this.loadDetail(fid);
+    } catch (e) {
+      showToast('Failed to create crop cycle: ' + e.message, 'error');
+    }
+  },
+
+  async handleAddSoil(e) {
+    e.preventDefault();
+    const fid = this.state.fieldId || this.state.currentField?.id;
+    if (!fid) return;
+    const data = {
+      field_id: fid,
+      temperature_c: parseFloat(document.getElementById('as-temp').value) || undefined,
+      moisture_pct: parseFloat(document.getElementById('as-moisture').value) || undefined,
+      ph: parseFloat(document.getElementById('as-ph').value) || undefined,
+      nitrogen_ppm: parseFloat(document.getElementById('as-n').value) || undefined,
+      phosphorus_ppm: parseFloat(document.getElementById('as-p').value) || undefined,
+      potassium_ppm: parseFloat(document.getElementById('as-k').value) || undefined,
+    };
+    try {
+      await api.createSoilReading(data);
+      showToast('Soil reading recorded', 'success');
+      this.closeOverlay('add-soil');
+      document.getElementById('add-soil-form').reset();
+      this.loadDetail(fid);
+    } catch (e) {
+      showToast('Failed: ' + e.message, 'error');
+    }
+  },
+};
+
+document.addEventListener('DOMContentLoaded', () => page.init());
+</script>
+</body>
+</html>

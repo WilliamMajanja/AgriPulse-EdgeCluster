@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Soil Health - AgriPulse FMIS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        'agri-dark': '#0D1117',
+        'agri-med': '#161B22',
+        'agri-light': '#21262D',
+        'agri-green': '#28A745',
+        'agri-text': '#C9D1D9',
+        'agri-text-muted': '#8B949E',
+        'agri-border': '#30363D',
+      },
+      fontFamily: {
+        sans: ['Inter', 'system-ui', 'sans-serif'],
+      },
+    },
+  },
+}
+</script>
+<link rel="stylesheet" href="/static/css/style.css">
+<script src="/static/js/api.js"></script>
+<style>
+  .ph-chip-green { color: var(--green); }
+  .ph-chip-yellow { color: var(--warning); }
+  .ph-chip-red { color: var(--danger); }
+  .moisture-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+  .history-item { border-bottom: 1px solid var(--border-light); padding: 10px 0; }
+  .history-item:last-child { border-bottom: none; }
+  .history-time { font-size: 0.7rem; color: var(--text-dim); }
+  .npk-compact { font-size: 0.6rem; color: var(--text-dim); margin-top: 2px; }
+  .sensor-value .moisture-dot { width: 8px; height: 8px; display: inline-block; vertical-align: middle; margin-right: 4px; }
+  #historyScroll { max-height: 320px; overflow-y: auto; }
+  .overlay select.form-input { appearance: auto; }
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <h1>Soil Health</h1>
+  <button id="filterBtn" class="btn btn-sm btn-secondary" title="Filter readings">Filter</button>
+</header>
+
+<main class="main-content">
+
+  <div class="mb-12">
+    <select id="fieldSelect" class="form-input">
+      <option value="">Select a field...</option>
+    </select>
+  </div>
+
+  <div id="alertsContainer"></div>
+
+  <div id="latestReadingSection" class="mb-12" style="display:none">
+    <div class="section-title">Latest Reading</div>
+    <div id="sensorGrid" class="sensor-group">
+      <div class="sensor-item">
+        <div class="sensor-value" id="tempValue">--</div>
+        <div class="sensor-label">Soil Temperature</div>
+        <div class="sensor-unit">°C</div>
+      </div>
+      <div class="sensor-item">
+        <div class="sensor-value" id="moistureValue"><span class="moisture-dot" id="moistureDot" style="background:var(--text-dim)"></span>--</div>
+        <div class="sensor-label">Moisture</div>
+        <div class="sensor-unit">%</div>
+      </div>
+      <div class="sensor-item" id="phCard">
+        <div class="sensor-value" id="phValue">--</div>
+        <div class="sensor-label">pH Level</div>
+        <div class="sensor-unit"></div>
+      </div>
+      <div class="sensor-item">
+        <div class="sensor-value" id="npkValue">--</div>
+        <div class="sensor-label">NPK (ppm)</div>
+        <div class="npk-compact" id="npkSub">N - / P - / K -</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="npkDetailSection" class="mb-12" style="display:none">
+    <div class="section-title">Nutrient Detail (ppm)</div>
+    <div class="grid-3">
+      <div class="stat-card">
+        <div class="number" id="nitrogenValue">--</div>
+        <div class="label">Nitrogen</div>
+      </div>
+      <div class="stat-card">
+        <div class="number" id="phosphorusValue">--</div>
+        <div class="label">Phosphorus</div>
+      </div>
+      <div class="stat-card">
+        <div class="number" id="potassiumValue">--</div>
+        <div class="label">Potassium</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mb-12">
+    <div class="section-title">Reading History</div>
+    <div class="card" id="historyCard">
+      <div id="historyScroll">
+        <div id="historyContainer">
+          <div class="empty-state">
+            <p>No readings recorded yet</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <button id="addReadingBtn" class="btn btn-primary btn-block">+ Add Reading</button>
+
+</main>
+
+<nav class="bottom-nav">
+  <a href="/index.html">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+    <span>Dashboard</span>
+  </a>
+  <a href="/fields.html">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 22V2"/><path d="M22 10v12"/><path d="M2 10h20"/><path d="M6 10V2h6v8"/><path d="M14 10V2h6v8"/></svg>
+    <span>Fields</span>
+  </a>
+  <a href="/soil.html" class="active">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20L12 2l10 18H2z"/><path d="M6.5 16L12 8l5.5 8"/><path d="M8 12h8"/></svg>
+    <span>Soil</span>
+  </a>
+  <a href="/plants.html">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.9C15.5 4.9 17 3.5 19 2c1 2 2 4.5 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.5-5 4-6"/></svg>
+    <span>Plants</span>
+  </a>
+  <a href="/tasks.html">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+    <span>Tasks</span>
+  </a>
+  <a href="/chat.html">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+    <span>Chat</span>
+  </a>
+</nav>
+
+<div class="overlay" id="addReadingOverlay" style="display:none">
+  <div class="overlay-header">
+    <button id="closeOverlayBtn" class="back-btn" aria-label="Close">&times;</button>
+    <h2>Add Soil Reading</h2>
+  </div>
+  <div class="overlay-body">
+    <form id="readingForm" novalidate>
+      <div class="form-group">
+        <label for="overlayFieldId">Field</label>
+        <select id="overlayFieldId" class="form-input" required>
+          <option value="">Select field...</option>
+        </select>
+      </div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label for="tempInput">Temperature (°C)</label>
+          <input type="number" id="tempInput" class="form-input" step="0.1" placeholder="e.g. 24.5">
+        </div>
+        <div class="form-group">
+          <label for="moistureInput">Moisture (%)</label>
+          <input type="number" id="moistureInput" class="form-input" step="0.1" min="0" max="100" placeholder="e.g. 65.0">
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="phInput">pH Level</label>
+        <input type="number" id="phInput" class="form-input" step="0.1" min="0" max="14" placeholder="e.g. 7.0">
+      </div>
+      <div class="grid-3">
+        <div class="form-group">
+          <label for="nInput">Nitrogen (ppm)</label>
+          <input type="number" id="nInput" class="form-input" step="1" placeholder="N">
+        </div>
+        <div class="form-group">
+          <label for="pInput">Phosphorus (ppm)</label>
+          <input type="number" id="pInput" class="form-input" step="1" placeholder="P">
+        </div>
+        <div class="form-group">
+          <label for="kInput">Potassium (ppm)</label>
+          <input type="number" id="kInput" class="form-input" step="1" placeholder="K">
+        </div>
+      </div>
+      <div class="grid-3">
+        <div class="form-group">
+          <label for="omInput">Organic Matter (%)</label>
+          <input type="number" id="omInput" class="form-input" step="0.1" placeholder="e.g. 3.5">
+        </div>
+        <div class="form-group">
+          <label for="cecInput">CEC (meq/100g)</label>
+          <input type="number" id="cecInput" class="form-input" step="0.1" placeholder="e.g. 15.0">
+        </div>
+        <div class="form-group">
+          <label for="microbeInput">Microbial Activity</label>
+          <input type="number" id="microbeInput" class="form-input" step="0.1" placeholder="e.g. 0.8">
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="notesInput">Notes</label>
+        <textarea id="notesInput" class="form-input" rows="3" placeholder="Observations, conditions, etc."></textarea>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block mt-16">Save Reading</button>
+      <button type="button" id="cancelOverlayBtn" class="btn btn-secondary btn-block mt-8">Cancel</button>
+    </form>
+  </div>
+</div>
+
+<script>
+(function () {
+  const urlParams = new URLSearchParams(window.location.search);
+  const preselectedFieldId = urlParams.get('field_id');
+
+  let selectedFieldId = null;
+  let fields = [];
+
+  const fieldSelect = document.getElementById('fieldSelect');
+  const overlayFieldId = document.getElementById('overlayFieldId');
+  const alertsContainer = document.getElementById('alertsContainer');
+  const latestSection = document.getElementById('latestReadingSection');
+  const npkSection = document.getElementById('npkDetailSection');
+  const sensorGrid = document.getElementById('sensorGrid');
+  const historyContainer = document.getElementById('historyContainer');
+
+  async function loadFields() {
+    try {
+      fields = await api.getFields() || [];
+      const opts = '<option value="">Select a field...</option>' +
+        fields.map(f => `<option value="${f.id}">${f.name}</option>`).join('');
+      fieldSelect.innerHTML = opts;
+      overlayFieldId.innerHTML = '<option value="">Select field...</option>' +
+        fields.map(f => `<option value="${f.id}">${f.name}</option>`).join('');
+
+      if (preselectedFieldId && fields.some(f => String(f.id) === preselectedFieldId)) {
+        fieldSelect.value = preselectedFieldId;
+        selectedFieldId = preselectedFieldId;
+        loadSoilData(selectedFieldId);
+      }
+    } catch (e) {
+      showToast('Failed to load fields: ' + e.message, 'error');
+    }
+  }
+
+  async function loadSoilData(fieldId) {
+    const card = document.querySelector('.main-content');
+    if (!card) return;
+
+    try {
+      const [latest, readings] = await Promise.all([
+        api.getLatestSoilReading(fieldId).catch(() => null),
+        api.getSoilReadings(fieldId).catch(() => []),
+      ]);
+
+      renderLatestReading(latest);
+      renderNpkDetail(latest);
+      renderHistory(readings);
+      checkAlerts(latest);
+    } catch (e) {
+      showToast('Failed to load soil data: ' + e.message, 'error');
+    }
+  }
+
+  function phClass(ph) {
+    if (ph == null) return '';
+    if (ph >= 6.0 && ph <= 7.5) return 'ph-chip-green';
+    if ((ph >= 5.5 && ph < 6.0) || (ph > 7.5 && ph <= 8.0)) return 'ph-chip-yellow';
+    return 'ph-chip-red';
+  }
+
+  function moistureColor(val) {
+    if (val == null) return 'var(--text-dim)';
+    if (val < 30) return 'var(--danger)';
+    if (val > 80) return 'var(--warning)';
+    return 'var(--green)';
+  }
+
+  function checkAlerts(latest) {
+    if (!latest) {
+      alertsContainer.innerHTML = '';
+      return;
+    }
+    const alerts = [];
+    if (latest.moisture_pct != null && latest.moisture_pct < 30) {
+      alerts.push({ msg: `Moisture level is critically low (${fmtNum(latest.moisture_pct)}%). Consider irrigation.`, type: 'danger' });
+    }
+    if (latest.ph != null) {
+      if (latest.ph < 5.5) {
+        alerts.push({ msg: `pH is too acidic (${fmtNum(latest.ph)}). Lime application may be needed.`, type: 'danger' });
+      } else if (latest.ph > 8.0) {
+        alerts.push({ msg: `pH is too alkaline (${fmtNum(latest.ph)}). Sulfur application may be needed.`, type: 'danger' });
+      } else if (latest.ph < 6.0 || latest.ph > 7.5) {
+        alerts.push({ msg: `pH (${fmtNum(latest.ph)}) is outside optimal range 6.0-7.5.`, type: 'warning' });
+      }
+    }
+    if (alerts.length === 0) {
+      alertsContainer.innerHTML = '';
+      return;
+    }
+    alertsContainer.innerHTML = alerts.map(a => {
+      const borderColor = a.type === 'danger' ? 'var(--danger)' : 'var(--warning)';
+      const iconColor = a.type === 'danger' ? 'var(--danger)' : 'var(--warning)';
+      return `<div class="card" style="border-color:${borderColor};padding:12px 14px">
+        <div style="display:flex;align-items:flex-start;gap:10px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="${iconColor}" stroke-width="2" style="width:20px;height:20px;flex-shrink:0;margin-top:1px"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          <span style="font-size:0.85rem;color:var(--text);flex:1">${a.msg}</span>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  function renderLatestReading(latest) {
+    if (!latest) {
+      latestSection.style.display = 'none';
+      return;
+    }
+    latestSection.style.display = 'block';
+
+    document.getElementById('tempValue').textContent = latest.temperature_c != null ? fmtNum(latest.temperature_c) : '--';
+    document.getElementById('moistureValue').innerHTML = latest.moisture_pct != null
+      ? `<span class="moisture-dot" style="background:${moistureColor(latest.moisture_pct)}"></span>${fmtNum(latest.moisture_pct)}`
+      : '<span class="moisture-dot" style="background:var(--text-dim)"></span>--';
+
+    const phEl = document.getElementById('phValue');
+    const phCard = document.getElementById('phCard');
+    if (latest.ph != null) {
+      phEl.textContent = fmtNum(latest.ph);
+      phCard.className = 'sensor-item ' + phClass(latest.ph);
+    } else {
+      phEl.textContent = '--';
+      phCard.className = 'sensor-item';
+    }
+
+    const n = latest.nitrogen_ppm;
+    const p = latest.phosphorus_ppm;
+    const k = latest.potassium_ppm;
+    const hasNpk = n != null || p != null || k != null;
+    if (hasNpk) {
+      const total = (n || 0) + (p || 0) + (k || 0);
+      document.getElementById('npkValue').textContent = total;
+      document.getElementById('npkSub').textContent =
+        `N ${n != null ? fmtNum(n, 0) : '-'} / P ${p != null ? fmtNum(p, 0) : '-'} / K ${k != null ? fmtNum(k, 0) : '-'}`;
+    } else {
+      document.getElementById('npkValue').textContent = '--';
+      document.getElementById('npkSub').textContent = 'N - / P - / K -';
+    }
+  }
+
+  function renderNpkDetail(latest) {
+    if (!latest || (latest.nitrogen_ppm == null && latest.phosphorus_ppm == null && latest.potassium_ppm == null)) {
+      npkSection.style.display = 'none';
+      return;
+    }
+    npkSection.style.display = 'block';
+    document.getElementById('nitrogenValue').textContent = latest.nitrogen_ppm != null ? fmtNum(latest.nitrogen_ppm, 0) : '--';
+    document.getElementById('phosphorusValue').textContent = latest.phosphorus_ppm != null ? fmtNum(latest.phosphorus_ppm, 0) : '--';
+    document.getElementById('potassiumValue').textContent = latest.potassium_ppm != null ? fmtNum(latest.potassium_ppm, 0) : '--';
+  }
+
+  function renderHistory(readings) {
+    if (!readings || readings.length === 0) {
+      historyContainer.innerHTML = '<div class="empty-state"><p>No readings recorded yet</p></div>';
+      return;
+    }
+    const sorted = [...readings].sort((a, b) => new Date(b.timestamp || b.recorded_at) - new Date(a.timestamp || a.recorded_at));
+    const recent = sorted.slice(0, 30);
+    historyContainer.innerHTML = recent.map(r => {
+      const ts = fmtDateTime(r.timestamp || r.recorded_at);
+      const n = r.nitrogen_ppm, p = r.phosphorus_ppm, k = r.potassium_ppm;
+      const npkStr = n != null || p != null || k != null
+        ? `N ${n != null ? fmtNum(n, 0) : '-'} P ${p != null ? fmtNum(p, 0) : '-'} K ${k != null ? fmtNum(k, 0) : '-'}`
+        : '';
+      return `<div class="history-item">
+        <div class="history-time">${ts}</div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;font-size:0.8rem;margin-top:4px">
+          ${r.temperature_c != null ? `<span>${fmtNum(r.temperature_c)}°C</span>` : ''}
+          ${r.moisture_pct != null ? `<span style="color:${moistureColor(r.moisture_pct)}">${fmtNum(r.moisture_pct)}%</span>` : ''}
+          ${r.ph != null ? `<span class="${phClass(r.ph)}">pH ${fmtNum(r.ph)}</span>` : ''}
+          ${npkStr ? `<span class="text-muted">${npkStr}</span>` : ''}
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  fieldSelect.addEventListener('change', function () {
+    selectedFieldId = this.value || null;
+    if (selectedFieldId) {
+      loadSoilData(selectedFieldId);
+    } else {
+      latestSection.style.display = 'none';
+      npkSection.style.display = 'none';
+      historyContainer.innerHTML = '<div class="empty-state"><p>Select a field to view readings</p></div>';
+      alertsContainer.innerHTML = '';
+    }
+  });
+
+  document.getElementById('addReadingBtn').addEventListener('click', function () {
+    if (selectedFieldId) {
+      overlayFieldId.value = selectedFieldId;
+    }
+    document.getElementById('addReadingOverlay').style.display = 'block';
+    document.body.style.overflow = 'hidden';
+  });
+
+  function closeOverlay() {
+    document.getElementById('addReadingOverlay').style.display = 'none';
+    document.body.style.overflow = '';
+    document.getElementById('readingForm').reset();
+    if (selectedFieldId) overlayFieldId.value = selectedFieldId;
+  }
+
+  document.getElementById('closeOverlayBtn').addEventListener('click', closeOverlay);
+  document.getElementById('cancelOverlayBtn').addEventListener('click', closeOverlay);
+
+  document.getElementById('readingForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    const fieldIdVal = overlayFieldId.value;
+    if (!fieldIdVal) {
+      showToast('Please select a field', 'warning');
+      return;
+    }
+    const data = {
+      field_id: parseInt(fieldIdVal),
+      temperature_c: parseFloat(document.getElementById('tempInput').value) || undefined,
+      moisture_pct: parseFloat(document.getElementById('moistureInput').value) || undefined,
+      ph: parseFloat(document.getElementById('phInput').value) || undefined,
+      nitrogen_ppm: parseInt(document.getElementById('nInput').value) || undefined,
+      phosphorus_ppm: parseInt(document.getElementById('pInput').value) || undefined,
+      potassium_ppm: parseInt(document.getElementById('kInput').value) || undefined,
+      organic_matter_pct: parseFloat(document.getElementById('omInput').value) || undefined,
+      cation_exchange_capacity: parseFloat(document.getElementById('cecInput').value) || undefined,
+      microbial_activity: parseFloat(document.getElementById('microbeInput').value) || undefined,
+      notes: document.getElementById('notesInput').value.trim() || undefined,
+    };
+
+    const submitBtn = this.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Saving...';
+
+    try {
+      await api.createSoilReading(data);
+      showToast('Soil reading recorded', 'success');
+      closeOverlay();
+      if (selectedFieldId || fieldIdVal) {
+        const fid = selectedFieldId || fieldIdVal;
+        loadSoilData(fid);
+        if (!selectedFieldId) {
+          selectedFieldId = fid;
+          fieldSelect.value = fid;
+        }
+      }
+    } catch (e) {
+      showToast('Failed: ' + e.message, 'error');
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Save Reading';
+    }
+  });
+
+  document.getElementById('filterBtn').addEventListener('click', function () {
+    fieldSelect.focus();
+    fieldSelect.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  });
+
+  loadFields();
+})();
+</script>
+</body>
+</html>

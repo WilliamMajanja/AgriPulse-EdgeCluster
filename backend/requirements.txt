@@ -1,0 +1,14 @@
+fastapi>=0.115.0
+uvicorn[standard]>=0.34.0
+sqlalchemy>=2.0.0
+pydantic>=2.0.0
+httpx>=0.27.0
+python-multipart>=0.0.9
+python-dotenv>=1.0.0
+aiosqlite>=0.20.0
+
+# Hardware sensors (optional - only on Raspberry Pi)
+# sense-hat>=2.0.0
+# adafruit-circuitpython-ads1x15>=2.2.0
+# picamera2>=0.3.0
+# board>=1.0
