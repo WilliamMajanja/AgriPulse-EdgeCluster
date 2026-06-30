@@ -4,7 +4,7 @@ import os
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 
-from fastapi import FastAPI, HTTPException, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -28,8 +28,6 @@ actuator_state = {
     "fans": False,
     "last_fertilization": None,
 }
-
-
 def build_system_data(sensor_readings: dict, logs: list) -> dict:
     uptime = _calc_uptime()
     return {
@@ -268,9 +266,8 @@ app.add_middleware(
 
 app.include_router(api_router)
 
-
 @app.websocket("/ws")
-async def websocket_endpoint(websocket):
+async def websocket_endpoint(websocket: WebSocket):
     if not ws_manager:
         await websocket.close(code=1011, reason="Server not ready")
         return
@@ -286,7 +283,6 @@ async def websocket_endpoint(websocket):
         pass
     finally:
         await ws_manager.disconnect(websocket)
-
 
 if os.path.isdir(FRONTEND_DIR):
     static_dir = os.path.join(FRONTEND_DIR, "static")
